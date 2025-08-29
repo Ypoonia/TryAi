@@ -37,9 +37,7 @@ POST /trigger_report
 **What happens:**
 1. Generates unique `report_id` (timestamp_ns + 6-digit random)
 2. Inserts row into `raw.reports` with `status='PENDING'`
-3. Spawns background task that:
-   - Sets status to `'RUNNING'` after ~0.1s
-   - Sets status to `'COMPLETE'` after ~1.5s
+3. Spawns background task placeholder (status updates will be handled manually in next step)
 4. Returns the `report_id` immediately
 
 ### 2. GET /get_report
@@ -128,10 +126,9 @@ CREATE TABLE raw.reports (
 
 ## 🔄 Report Lifecycle
 
-1. **PENDING** → Report created, background task started
-2. **RUNNING** → Background task processing (after ~0.1s)
-3. **COMPLETE** → Report processing finished (after ~1.5s)
-4. **FAILED** → Error occurred during processing
+1. **PENDING** → Report created, background task placeholder started
+2. **Status updates will be handled manually in the next step**
+3. **No automatic progression** - all status changes will be manual
 
 ## 🧪 Testing the API
 
@@ -185,7 +182,7 @@ The API provides detailed logging for:
 ## 📊 Background Tasks
 
 The API uses FastAPI's `BackgroundTasks` to:
-- Process reports asynchronously
-- Update status without blocking the main request
-- Handle failures gracefully
+- Create reports asynchronously
+- Provide a placeholder for future manual status updates
 - Maintain responsive API endpoints
+- **Note**: Status updates will be handled manually in the next step
