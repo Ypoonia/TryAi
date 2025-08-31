@@ -7,3 +7,5 @@ sqlalchemy==2.0.43
 alembic==1.16.5
 pydantic-settings==2.10.1
 pytz==2023.3
+celery==5.3.4
+redis==5.0.1

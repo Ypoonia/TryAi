@@ -4,7 +4,8 @@ Report Routes - Using Routes-Controller-Service Architecture
 This demonstrates proper separation of concerns with clean architecture
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.models import get_db
@@ -66,6 +67,61 @@ def get_report_status(
     - 500: Internal server error
     """
     return controller.get_report_status(report_id)
+
+
+@router.get("/get_report", summary="Get report status or download CSV file")
+def get_report(
+    report_id: str,
+    controller: ReportController = Depends(get_report_controller)
+):
+    """
+    Get report status or download CSV file
+    
+    **Parameters:**
+    - report_id: Unique report identifier
+    
+    **Returns:**
+    - If report is not complete: Returns "Running" status
+    - If report is complete: Returns the CSV file with the schema:
+      store_id, uptime_last_hour (minutes), uptime_last_day (hours), 
+      uptime_last_week (hours), downtime_last_hour (minutes), 
+      downtime_last_day (hours), downtime_last_week (hours)
+    
+    **Errors:**
+    - 400: Invalid or missing report_id
+    - 404: Report not found
+    - 500: Internal server error
+    """
+    # Get report status
+    status_result = controller.get_report_status(report_id)
+    
+    # If not complete, return "Running"
+    if status_result.status not in ["COMPLETE", "COMPLETED"]:
+        return {"status": "Running"}
+    
+    # If complete, return the CSV content
+    if status_result.url:
+        # Extract file path from URL
+        file_path = status_result.url.replace("file://", "")
+        if file_path.startswith("/"):
+            file_path = file_path[1:]  # Remove leading slash
+        
+        # Check if file exists and read CSV content
+        import os
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                csv_content = f.read()
+            
+            return Response(
+                content=csv_content,
+                media_type="text/csv",
+                headers={"Content-Disposition": f"inline; filename={report_id}.csv"}
+            )
+        else:
+            raise HTTPException(status_code=404, detail="Report file not found")
+    
+    # If complete but no URL
+    raise HTTPException(status_code=500, detail="Report complete but file not available")
 
 
 @router.get("/details", response_model=ReportDetailResponse, summary="Get detailed report info")

@@ -14,6 +14,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from .minute_index_report_service import MinuteIndexReportService
 from .comprehensive_store_report_service import ComprehensiveStoreReportService
+from app.tasks.report_tasks import generate_report
 
 from app.models.report import Report
 from app.database.crud import ReportCRUD
@@ -101,6 +102,20 @@ class ReportService:
             
             logger.info(f"Report {report_id} created successfully")
             
+            # Trigger Celery task for async processing
+            try:
+                task = generate_report.delay(report_id)
+                logger.info(f"Celery task enqueued for report {report_id}: {task.id}")
+            except Exception as e:
+                logger.error(f"Failed to enqueue Celery task for report {report_id}: {e}")
+                # Mark as FAILED if Celery is not available
+                self.set_report_status_and_url(report_id, "FAILED")
+                return {
+                    "success": False,
+                    "error_code": "CELERY_FAILED",
+                    "data": {"message": f"Failed to start report generation: {str(e)}"}
+                }
+            
             return {
                 "success": True,
                 "error_code": None,
@@ -108,6 +123,7 @@ class ReportService:
                     "report": db_report,
                     "report_id": report_id,
                     "status": "PENDING",
+                    "task_id": task.id,
                     "created_at": db_report.created_at
                 }
             }

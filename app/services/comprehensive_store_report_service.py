@@ -236,10 +236,6 @@ class ComprehensiveStoreReportService:
         tz_str = store_data["timezone_str"]
         business_hours = store_data["business_hours"]
         
-        # Setup timezone
-        # Use UTC for all calculations - no timezone conversion
-        now_s = self._floor_minute(max_utc)
-        
         # Define bands
         H = (1, 61)      # Hour
         D = (1, 1441)    # Day
@@ -252,19 +248,22 @@ class ComprehensiveStoreReportService:
             logger.warning(f"Invalid timezone '{tz_str}' for store {store_id}, using UTC")
             store_tz = pytz.UTC
         
-        # Load & normalize polls (using UTC)
-        polls_normalized = self._load_and_normalize_polls(store_id, store_tz, now_s)
+        # Setup timezone and NOW_s in local timezone
+        now_s_local = self._floor_minute(max_utc.astimezone(store_tz))
         
-        # Build BH intervals (using UTC)
-        bh_intervals = self._build_bh_intervals_from_data(business_hours, store_tz, now_s)
+        # Load & normalize polls (using local timezone)
+        polls_normalized = self._load_and_normalize_polls(store_id, store_tz, now_s_local)
+        
+        # Build BH intervals (using local timezone)
+        bh_intervals = self._build_bh_intervals_from_data(business_hours, store_tz, now_s_local)
         
         # Calculate BH budgets
         B_H = sum(self._overlap_len(interval, H) for interval in bh_intervals)
         B_D = sum(self._overlap_len(interval, D) for interval in bh_intervals)
         B_W = sum(self._overlap_len(interval, W) for interval in bh_intervals)
         
-        # Build status spans with "seed before" logic
-        status_spans = self._build_status_spans_with_seed_before(polls_normalized, W, now_s)
+        # Build status spans with pure carry-forward logic
+        status_spans = self._build_status_spans_carry_forward(polls_normalized, W)
         
         # Two-pointer sweep
         U_H, U_D, U_W = self._two_pointer_sweep(bh_intervals, status_spans, H, D, W)
@@ -287,7 +286,7 @@ class ComprehensiveStoreReportService:
             "downtime_last_day": D_D / 60.0,      # hours
             "downtime_last_week": D_W / 60.0,     # hours
             "timezone": tz_str,
-            "now_s": now_s.isoformat(),
+            "now_s": now_s_local.isoformat(),
             "normalization": store_data["normalized"],
             "algorithm_details": {
                 "total_polls": len(polls_normalized),
@@ -303,9 +302,11 @@ class ComprehensiveStoreReportService:
     def _floor_minute(self, dt: datetime) -> datetime:
         return dt.replace(second=0, microsecond=0)
     
-    def _minute_index(self, dt: datetime, now_s: datetime) -> int:
-        delta_minutes = (now_s - dt).total_seconds() / 60.0
-        return math.ceil(delta_minutes)
+    def _minute_index(self, dt_local: datetime, now_s_local: datetime) -> int:
+        """Map local datetime dt_local (floored to minute) to index k
+        Both dt_local and now_s_local MUST be tz-aware in the SAME timezone"""
+        delta_minutes = (now_s_local - dt_local).total_seconds() / 60.0
+        return max(1, int(delta_minutes + 1))
     
     def _overlap_len(self, interval1: Tuple[int, int], interval2: Tuple[int, int]) -> int:
         a, b = interval1
@@ -315,11 +316,11 @@ class ComprehensiveStoreReportService:
     def _clamp(self, value: float, lo: float, hi: float) -> float:
         return max(lo, min(hi, value))
     
-    def _load_and_normalize_polls(self, store_id: str, store_tz: Optional[pytz.BaseTzInfo], now_s: datetime) -> List[Tuple[int, str]]:
+    def _load_and_normalize_polls(self, store_id: str, store_tz: Optional[pytz.BaseTzInfo], now_s_local: datetime) -> List[Tuple[int, str]]:
         """Load and normalize polls for the store"""
         
         left_buf_minutes = 1440
-        left_dt = now_s - timedelta(minutes=10080 + left_buf_minutes)
+        left_dt = now_s_local - timedelta(minutes=10080 + left_buf_minutes)
         left_dt_local_tz = store_tz.localize(left_dt)
         left_dt_utc = left_dt_local_tz.astimezone(pytz.UTC)
         
@@ -342,15 +343,21 @@ class ComprehensiveStoreReportService:
             timestamp_utc_str = row[0]
             status = row[1]
             
+            # Parse timestamp (UTC) and ensure timezone-aware
             if isinstance(timestamp_utc_str, str):
                 timestamp_utc_str = timestamp_utc_str.replace(' UTC', '')
                 timestamp_utc = datetime.fromisoformat(timestamp_utc_str)
+                if timestamp_utc.tzinfo is None:
+                    timestamp_utc = pytz.UTC.localize(timestamp_utc)
             else:
                 timestamp_utc = timestamp_utc_str
-            
-            timestamp_local = timestamp_utc.replace(tzinfo=pytz.UTC).astimezone(store_tz)
-            dt_local_floored = self._floor_minute(timestamp_local.replace(tzinfo=None))
-            minute_index = self._minute_index(dt_local_floored, now_s)
+                if timestamp_utc.tzinfo is None:
+                    timestamp_utc = pytz.UTC.localize(timestamp_utc)
+
+            # Convert to local timezone (both timezone-aware in same tz)
+            timestamp_local = timestamp_utc.astimezone(store_tz)
+            dt_local_floored = self._floor_minute(timestamp_local)
+            minute_index = self._minute_index(dt_local_floored, now_s_local)
             
             norm_status = self._map_to_active_inactive(status)
             if norm_status is None:
@@ -364,7 +371,8 @@ class ComprehensiveStoreReportService:
             if minute_index <= 10080:
                 polls_normalized.append((minute_index, status))
         
-        polls_normalized.sort(key=lambda x: x[0])
+        # Sort descending by index: larger index = older timestamp (chronological order)
+        polls_normalized.sort(key=lambda x: x[0], reverse=True)
         return polls_normalized
     
     def _map_to_active_inactive(self, status: str) -> Optional[str]:
@@ -377,12 +385,12 @@ class ComprehensiveStoreReportService:
             return None
     
     def _build_bh_intervals_from_data(self, business_hours: Dict[int, List[Tuple[str, str]]], 
-                                    store_tz: Optional[pytz.BaseTzInfo], now_s: datetime) -> List[Tuple[int, int]]:
+                                    store_tz: Optional[pytz.BaseTzInfo], now_s_local: datetime) -> List[Tuple[int, int]]:
         """Build business hours intervals from normalized data"""
         
         bh_intervals = []
-        start_date = (now_s - timedelta(days=8)).date()
-        end_date = (now_s + timedelta(days=1)).date()
+        start_date = (now_s_local - timedelta(days=8)).date()
+        end_date = (now_s_local + timedelta(days=1)).date()
         
         current_date = start_date
         while current_date <= end_date:
@@ -407,11 +415,13 @@ class ComprehensiveStoreReportService:
                     dt_start = datetime.combine(current_date, start_time)
                     dt_end = datetime.combine(current_date, end_time)
                     
-                    idx_end = max(1, self._minute_index(dt_end, now_s))
-                    idx_start = min(10081, self._minute_index(dt_start, now_s))
+                    idx_end = max(1, self._minute_index(dt_end, now_s_local))
+                    idx_start = min(10081, self._minute_index(dt_start, now_s_local))
                     
-                    if idx_end < idx_start:
-                        bh_intervals.append((idx_end, idx_start))
+                    # Since minute indices count backwards, idx_end < idx_start
+                    # Store as (start, end) where start < end in index space
+                    if idx_end < idx_start:  # Valid interval
+                        bh_intervals.append((idx_end, idx_start))  # (smaller_idx, larger_idx)
             
             current_date += timedelta(days=1)
         
@@ -450,6 +460,53 @@ class ComprehensiveStoreReportService:
                 merged.append((start, end))
         return merged
     
+    def _build_status_spans_carry_forward(self, polls_idx: List[Tuple[int,str]], W: Tuple[int,int]) -> List[Tuple[int,int,str]]:
+        """
+        Pure carry-forward + seed-before timeline (no midpoint, no 23:00)
+        polls_idx: (k, status) where k is minute index vs now_s_local
+        """
+        if not polls_idx:
+            return [(W[0], W[1], 'inactive')]
+        
+        # seed = last poll at or BEFORE band start (k >= 10080)
+        start_k = W[1]-1  # 10080
+        seed_status = 'inactive'  # fallback
+        for k, s in sorted(polls_idx, key=lambda x: x[0]):  # ascending k
+            if k >= start_k:
+                seed_status = s
+                break
+                
+        # window polls (ascending k makes sense if you always create (min,max))
+        window_polls = [(k,s) for (k,s) in polls_idx if W[0] <= k < W[1]]
+        if not window_polls:
+            return [(W[0], W[1], seed_status)]
+            
+        spans = []
+        prev_k = start_k
+        prev_s = seed_status
+    
+        # Iterate from window start toward now: use DESCENDING k for clarity
+        for k, s in sorted(window_polls, key=lambda x: -x[0]):
+            # segment between [k, prev_k) has status = prev_s (carry-forward)
+            a, b = sorted((k, prev_k))
+            if a < b:
+                spans.append((a, b, prev_s))
+            prev_k, prev_s = k, s
+    
+        # Tail to the window end (k=1)
+        a, b = sorted((W[0], prev_k))
+        if a < b:
+            spans.append((a, b, prev_s))
+    
+        # Merge adjacents
+        out = []
+        for st, en, stt in sorted(spans):
+            if out and out[-1][2] == stt and out[-1][1] == st:
+                out[-1] = (out[-1][0], en, stt)
+            else:
+                out.append((st, en, stt))
+        return out
+
     def _merge_sorted_intervals(self, intervals: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
         if not intervals:
             return []
@@ -462,160 +519,6 @@ class ComprehensiveStoreReportService:
             else:
                 merged.append((start, end))
         return merged
-    
-    def _build_status_spans_with_seed_before(self, polls_normalized: List[Tuple[int, str]], W: Tuple[int, int], now_s: datetime) -> List[Tuple[int, int, str]]:
-        """Build status spans with "seed before" logic"""
-        if not polls_normalized:
-            return []
-        
-        status_spans = []
-        start_w = W[1] - 1  # 10080 (start of week window)
-        
-        # Find seed status (latest poll <= start_w)
-        seed_status = None
-        for idx, status in polls_normalized:
-            if idx <= start_w:
-                seed_status = status
-        
-        if seed_status is None:
-            # Use first in-window poll's status
-            seed_status = polls_normalized[0][1]
-        
-        # Filter polls to window W
-        window_polls = [(idx, status) for idx, status in polls_normalized if W[0] <= idx < W[1]]
-        
-        if not window_polls:
-            # No polls in window, entire window has seed status
-            return [(W[0], W[1], seed_status)]
-        
-        # Build status timeline with "seed before" logic
-        timeline = []
-        
-        # Start with seed status
-        current_idx = W[1] - 1  # Start from beginning of window (10080)
-        current_status = seed_status
-        
-        # Process each poll in window
-        prev_idx = current_idx
-        prev_status = current_status
-        
-        for poll_idx, poll_status in window_polls:
-            if poll_status == prev_status:
-                # Status continues, just update position
-                prev_idx = poll_idx
-            else:
-                # Status change - implement "seed before" logic
-                if prev_status == "inactive" and poll_status == "active":
-                    # When changing from inactive -> active, start active from previous inactive timestamp
-                    # Don't create a midpoint, just continue from prev_idx
-                    timeline.append((prev_idx, poll_idx, poll_status))
-                else:
-                    # For other transitions, use midpoint interpolation
-                    midpoint = (prev_idx + poll_idx) // 2
-                    
-                    # Close previous span
-                    if prev_idx < midpoint:
-                        timeline.append((prev_idx, midpoint, prev_status))
-                    
-                    # Start new span
-                    timeline.append((midpoint, poll_idx, poll_status))
-                
-                prev_idx = poll_idx
-                prev_status = poll_status
-        
-        # Extend to end of window with 23:00 cutoff logic
-        if prev_idx < W[1]:
-            # Apply 23:00 cutoff logic for active periods
-            if prev_status == "active":
-                # Find the 23:00 cutoff minute index
-                cutoff_time = now_s.replace(hour=23, minute=0, second=0, microsecond=0)
-                cutoff_idx = self._minute_index(cutoff_time, now_s)
-                
-                # Use the earlier of W[1] or cutoff_idx
-                end_idx = min(W[1], cutoff_idx)
-                if prev_idx < end_idx:
-                    timeline.append((prev_idx, end_idx, prev_status))
-            else:
-                # For inactive periods, use full window
-                timeline.append((prev_idx, W[1], prev_status))
-        
-        # Merge adjacent spans with same status
-        if timeline:
-            status_spans = [timeline[0]]
-            for start, end, status in timeline[1:]:
-                last_start, last_end, last_status = status_spans[-1]
-                
-                if status == last_status and start == last_end:
-                    # Merge adjacent spans
-                    status_spans[-1] = (last_start, end, status)
-                else:
-                    status_spans.append((start, end, status))
-        
-        # Clamp all spans to W and filter valid ones
-        status_spans = [
-            (max(start, W[0]), min(end, W[1]), status)
-            for start, end, status in status_spans
-            if max(start, W[0]) < min(end, W[1])
-        ]
-        
-        return status_spans
-    
-    def _build_status_spans(self, polls_normalized: List[Tuple[int, str]], W: Tuple[int, int]) -> List[Tuple[int, int, str]]:
-        """Build status spans with midpoint interpolation"""
-        
-        if not polls_normalized:
-            return []
-        
-        status_spans = []
-        start_w = W[1] - 1
-        
-        seed_status = None
-        for idx, status in polls_normalized:
-            if idx <= start_w:
-                seed_status = status
-        
-        if seed_status is None:
-            seed_status = polls_normalized[0][1]
-        
-        window_polls = [(idx, status) for idx, status in polls_normalized if W[0] <= idx < W[1]]
-        
-        if not window_polls:
-            return [(W[0], W[1], seed_status)]
-        
-        timeline = []
-        prev_idx = W[1] - 1
-        prev_status = seed_status
-        
-        for poll_idx, poll_status in window_polls:
-            if poll_status == prev_status:
-                prev_idx = poll_idx
-            else:
-                midpoint = (prev_idx + poll_idx) // 2
-                if prev_idx < midpoint:
-                    timeline.append((prev_idx, midpoint, prev_status))
-                timeline.append((midpoint, poll_idx, poll_status))
-                prev_idx = poll_idx
-                prev_status = poll_status
-        
-        if prev_idx < W[1]:
-            timeline.append((prev_idx, W[1], prev_status))
-        
-        if timeline:
-            status_spans = [timeline[0]]
-            for start, end, status in timeline[1:]:
-                last_start, last_end, last_status = status_spans[-1]
-                if status == last_status and start == last_end:
-                    status_spans[-1] = (last_start, end, status)
-                else:
-                    status_spans.append((start, end, status))
-        
-        status_spans = [
-            (max(start, W[0]), min(end, W[1]), status)
-            for start, end, status in status_spans
-            if max(start, W[0]) < min(end, W[1])
-        ]
-        
-        return status_spans
     
     def _two_pointer_sweep(self, bh_intervals: List[Tuple[int, int]], 
                           status_spans: List[Tuple[int, int, str]],
