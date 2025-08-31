@@ -30,27 +30,10 @@ def get_report(
     """Get report status or download CSV when ready"""
     status_result = controller.get_report_status(report_id)
     
-    if status_result.status != "COMPLETED":
+    if status_result.status == "COMPLETED":
+        return {"status": "Complete", "url": status_result.url}
+    elif status_result.status == "FAILED":
+        return {"status": "Failed"}
+    else:
         return {"status": "Running"}
     
-    return {"status": "Complete", "url": status_result.url}
-    
-    # if status_result.url:
-    #     file_path = status_result.url.replace("file://", "")
-    #     if file_path.startswith("/"):
-    #         file_path = file_path[1:]
-    #     
-    #     import os
-    #     if os.path.exists(file_path):
-    #         with open(file_path, 'r', encoding='utf-8') as f:
-    #             csv_content = f.read()
-    #         
-    #         return Response(
-    #             content=csv_content,
-    #             media_type="text/csv",
-    #             headers={"Content-Disposition": f"attachment; filename={report_id}.csv"}
-    #         )
-    #     else:
-    #         raise HTTPException(status_code=404, detail="Report file not found")
-    # 
-    # return {"status": "Complete"}
