@@ -1,0 +1,218 @@
+{
+  "report_metadata": {
+    "report_id": "flow_test_47871823",
+    "generated_at": "2025-08-31T11:05:29.702531",
+    "total_stores": 7,
+    "max_utc": "2024-10-14T23:55:18.727055",
+    "algorithm": "Carry-Forward (Seed-Before) Interval Sweep",
+    "bands": {
+      "H": "[1, 61) = 60 minutes (last hour)",
+      "D": "[1, 1441) = 1440 minutes (last day)",
+      "W": "[1, 10081) = 10080 minutes (last week)"
+    },
+    "schema": [
+      "store_id",
+      "uptime_last_hour (minutes)",
+      "uptime_last_day (hours)",
+      "uptime_last_week (hours)",
+      "downtime_last_hour (minutes)",
+      "downtime_last_day (hours)",
+      "downtime_last_week (hours)"
+    ]
+  },
+  "report_data": [
+    {
+      "store_id": "00017c6a-7a77-4a95-bb2d-40647868aff6",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 5.45,
+      "uptime_last_week": 44.13333333333333,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 5.05,
+      "downtime_last_week": 31.366666666666667,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T13:25:00-05:00",
+      "algorithm_details": {
+        "total_polls": 63,
+        "bh_intervals_count": 8,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 630,
+          "W": 4530
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 327.0,
+          "W": 2648.0
+        }
+      }
+    },
+    {
+      "store_id": "00505ad5-7cf5-42f1-a7e4-252e42273e77",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 8.3,
+      "uptime_last_week": 57.93333333333333,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 5.183333333333334,
+      "downtime_last_week": 36.45,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T13:25:00-05:00",
+      "algorithm_details": {
+        "total_polls": 64,
+        "bh_intervals_count": 8,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 809,
+          "W": 5663
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 498.0,
+          "W": 3476.0
+        }
+      }
+    },
+    {
+      "store_id": "0059ffee-d90a-4355-afd3-b14e7030d2a5",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 10.766666666666667,
+      "uptime_last_week": 75.06666666666666,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 3.216666666666667,
+      "downtime_last_week": 24.816666666666666,
+      "timezone": "America/Denver",
+      "now_s": "2024-10-14T12:25:00-06:00",
+      "algorithm_details": {
+        "total_polls": 64,
+        "bh_intervals_count": 10,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 839,
+          "W": 5993
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 646.0,
+          "W": 4504.0
+        }
+      }
+    },
+    {
+      "store_id": "006006cb-7763-42bb-af62-0101f6bc2de1",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 8.966666666666667,
+      "uptime_last_week": 62.65,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 3.533333333333333,
+      "downtime_last_week": 26.85,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T13:25:00-05:00",
+      "algorithm_details": {
+        "total_polls": 64,
+        "bh_intervals_count": 8,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 750,
+          "W": 5370
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 538.0,
+          "W": 3759.0
+        }
+      }
+    },
+    {
+      "store_id": "006c9910-9126-4bb9-b5d8-cd37bc14790b",
+      "uptime_last_hour": 0,
+      "uptime_last_day": 0.0,
+      "uptime_last_week": 0.0,
+      "downtime_last_hour": 60,
+      "downtime_last_day": 24.0,
+      "downtime_last_week": 168.0,
+      "timezone": "America/New_York",
+      "now_s": "2024-10-14T14:25:00-04:00",
+      "algorithm_details": {
+        "total_polls": 193,
+        "bh_intervals_count": 1,
+        "status_spans_count": 1,
+        "bh_budgets": {
+          "H": 60,
+          "D": 1440,
+          "W": 10080
+        },
+        "raw_uptimes": {
+          "H": 0,
+          "D": 0,
+          "W": 0
+        }
+      }
+    },
+    {
+      "store_id": "007257d2-73df-4c35-8a67-859f988b63f0",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 12.316666666666666,
+      "uptime_last_week": 82.76666666666667,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 3.1666666666666665,
+      "downtime_last_week": 25.616666666666667,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T13:25:00-05:00",
+      "algorithm_details": {
+        "total_polls": 64,
+        "bh_intervals_count": 15,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 929,
+          "W": 6503
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 739.0,
+          "W": 4966.0
+        }
+      }
+    },
+    {
+      "store_id": "007a6957-bf78-4062-9a01-b39641f0c126",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 9.366666666666667,
+      "uptime_last_week": 65.36666666666666,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 3.1333333333333333,
+      "downtime_last_week": 22.133333333333333,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T13:25:00-05:00",
+      "algorithm_details": {
+        "total_polls": 64,
+        "bh_intervals_count": 8,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 750,
+          "W": 5250
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 562.0,
+          "W": 3922.0
+        }
+      }
+    }
+  ],
+  "algorithm_details": {
+    "description": "Carry-forward logic with seed-before interpolation",
+    "features": [
+      "Local minute index counting backwards from MAX_UTC",
+      "Proper timezone conversion per store",
+      "Business hours as index intervals",
+      "Carry-forward (seed-before) interpolation between status changes",
+      "Two-pointer sweep for efficient intersection",
+      "Invariant validation (uptime + downtime = business hours)"
+    ]
+  }
+}

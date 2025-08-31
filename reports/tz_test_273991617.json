@@ -1,0 +1,62 @@
+{
+  "report_metadata": {
+    "report_id": "tz_test_273991617",
+    "generated_at": "2025-08-31T11:19:28.595703",
+    "total_stores": 1,
+    "max_utc": "2024-10-14T23:55:18.727055+00:00",
+    "algorithm": "Carry-Forward (Seed-Before) Interval Sweep",
+    "bands": {
+      "H": "[1, 61) = 60 minutes (last hour)",
+      "D": "[1, 1441) = 1440 minutes (last day)",
+      "W": "[1, 10081) = 10080 minutes (last week)"
+    },
+    "schema": [
+      "store_id",
+      "uptime_last_hour (minutes)",
+      "uptime_last_day (hours)",
+      "uptime_last_week (hours)",
+      "downtime_last_hour (minutes)",
+      "downtime_last_day (hours)",
+      "downtime_last_week (hours)"
+    ]
+  },
+  "report_data": [
+    {
+      "store_id": "00017c6a-7a77-4a95-bb2d-40647868aff6",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 8.533333333333333,
+      "uptime_last_week": 58.78333333333333,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 1.9666666666666666,
+      "downtime_last_week": 16.716666666666665,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 61,
+        "bh_intervals_count": 10,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 630,
+          "W": 4530
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 512.0,
+          "W": 3527.0
+        }
+      }
+    }
+  ],
+  "algorithm_details": {
+    "description": "Carry-forward logic with seed-before interpolation",
+    "features": [
+      "Local minute index counting backwards from MAX_UTC",
+      "Proper timezone conversion per store",
+      "Business hours as index intervals",
+      "Carry-forward (seed-before) interpolation between status changes",
+      "Two-pointer sweep for efficient intersection",
+      "Invariant validation (uptime + downtime = business hours)"
+    ]
+  }
+}

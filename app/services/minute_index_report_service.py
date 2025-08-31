@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import csv
 import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple, Union
@@ -58,8 +59,11 @@ class MinuteIndexReportService:
                     logger.error(f"Error processing store {store_id}: {e}")
                     continue
             
-            # Save report
-            report_file_path = self._save_report_json(report_id, report_data, max_utc)
+            # Save JSON (metadata-rich, debugging)
+            self._save_report_json(report_id, report_data, max_utc)
+            
+            # Save CSV (flat report for owners)
+            report_file_path = self._save_report_csv(report_id, report_data, max_utc)
             
             # Generate summary
             summary = self._generate_report_summary(report_data)
@@ -70,7 +74,7 @@ class MinuteIndexReportService:
                 "success": True,
                 "report_id": report_id,
                 "total_stores": len(report_data),
-                "file_path": str(report_file_path),
+                "file_path": str(report_file_path),  # CSV path
                 "summary": summary,
                 "generated_at": datetime.utcnow().isoformat(),
                 "max_utc": max_utc.isoformat(),
@@ -98,6 +102,10 @@ class MinuteIndexReportService:
             max_utc = datetime.fromisoformat(max_timestamp_str)
         else:
             max_utc = result[0]
+        
+        # Ensure timezone-aware UTC datetime (single source of truth)
+        if max_utc.tzinfo is None:
+            max_utc = pytz.UTC.localize(max_utc)
         
         return max_utc
     
@@ -128,26 +136,28 @@ class MinuteIndexReportService:
         Process a single store using the minute index algorithm
         """
         
-        # Step 0: Setup UTC timezone and NOW_s
-        # Use UTC for all calculations - no timezone conversion
-        now_s = self._floor_minute(max_utc)
+        # Step 0: Setup timezone and NOW_s in local timezone
+        # Default to America/Chicago for US-based stores when timezone is missing
+        # TODO: Consider geographic distribution analysis for better defaults
+        store_tz = pytz.timezone(tz_str or "America/Chicago")
+        now_s_local = self._floor_minute(max_utc.astimezone(store_tz))
         
-        logger.debug(f"Store {store_id}: NOW_s = {now_s}")
+        logger.debug(f"Store {store_id}: NOW_s_local = {now_s_local} (local timezone: {tz_str})")
         
         # Define bands (half-open index ranges)
         H = (1, 61)      # Hour: [1, 61) = 60 minutes
         D = (1, 1441)    # Day: [1, 1441) = 1440 minutes 
         W = (1, 10081)   # Week: [1, 10081) = 10080 minutes
         
-        # Step 1: Load & normalize polls (using UTC)
-        polls_normalized = self._load_and_normalize_polls(store_id, None, now_s)
+        # Step 1: Load & normalize polls (using local timezone)
+        polls_normalized = self._load_and_normalize_polls(store_id, store_tz, now_s_local)
         
         if not polls_normalized:
             logger.debug(f"Store {store_id}: No polls found, excluding")
             return None
         
-        # Step 2: Build BH intervals (using UTC)
-        bh_intervals = self._build_bh_intervals(store_id, None, now_s)
+        # Step 2: Build BH intervals (using local timezone)
+        bh_intervals = self._build_bh_intervals(store_id, store_tz, now_s_local)
         
         # Calculate BH budgets
         B_H = sum(self._overlap_len(interval, H) for interval in bh_intervals)
@@ -156,8 +166,8 @@ class MinuteIndexReportService:
         
         logger.debug(f"Store {store_id}: BH budgets H={B_H}, D={B_D}, W={B_W}")
         
-        # Step 3: Build status spans with "seed before" logic
-        status_spans = self._build_status_spans_with_seed_before(polls_normalized, W, now_s)
+        # Step 3: Build status spans with pure carry-forward logic
+        status_spans = self._build_status_spans_carry_forward(polls_normalized, W)
         
         # Step 4: Two-pointer sweep
         U_H, U_D, U_W = self._two_pointer_sweep(bh_intervals, status_spans, H, D, W)
@@ -185,7 +195,7 @@ class MinuteIndexReportService:
             "downtime_last_day": D_D / 60.0,      # hours
             "downtime_last_week": D_W / 60.0,     # hours
             "timezone": tz_str,
-            "now_s": now_s.isoformat(),
+            "now_s": now_s_local.isoformat(),
             "algorithm_details": {
                 "total_polls": len(polls_normalized),
                 "bh_intervals_count": len(bh_intervals),
@@ -201,14 +211,15 @@ class MinuteIndexReportService:
         """Floor datetime to minute boundary"""
         return dt.replace(second=0, microsecond=0)
     
-    def _minute_index(self, dt: datetime, now_s: datetime) -> int:
-        """Map local datetime dt (floored to minute) to index k"""
-        delta_minutes = (now_s - dt).total_seconds() / 60.0
+    def _minute_index(self, dt_local: datetime, now_s_local: datetime) -> int:
+        """Map local datetime dt_local (floored to minute) to index k
+        Both dt_local and now_s_local MUST be tz-aware in the SAME timezone"""
+        delta_minutes = (now_s_local - dt_local).total_seconds() / 60.0
         return math.ceil(delta_minutes)
     
-    def _index_to_datetime(self, k: int, now_s: datetime) -> datetime:
-        """Inverse: dt(k) = NOW_s - k minutes"""
-        return now_s - timedelta(minutes=k)
+    def _index_to_datetime(self, k: int, now_s_local: datetime) -> datetime:
+        """Inverse: dt(k) = now_s_local - k minutes"""
+        return now_s_local - timedelta(minutes=k)
     
     def _overlap_len(self, interval1: Tuple[int, int], interval2: Tuple[int, int]) -> int:
         """Calculate overlap length between two half-open intervals [a,b) and [x,y)"""
@@ -222,15 +233,17 @@ class MinuteIndexReportService:
     
     # Step 1: Load & Normalize Polls
     
-    def _load_and_normalize_polls(self, store_id: str, store_tz: Optional[pytz.BaseTzInfo], now_s: datetime) -> List[Tuple[int, str]]:
+    def _load_and_normalize_polls(self, store_id: str, store_tz: Optional[pytz.BaseTzInfo], now_s_local: datetime) -> List[Tuple[int, str]]:
         """
         Load and normalize polls for the store
         Returns list of (minute_index, status) sorted by minute_index
         """
         
-        # Calculate left boundary with buffer (UTC)
+        # Calculate left boundary with buffer (local timezone)
         left_buf_minutes = 1440  # 1 day buffer
-        left_dt_utc = now_s - timedelta(minutes=10080 + left_buf_minutes)
+        left_dt_local = now_s_local - timedelta(minutes=10080 + left_buf_minutes)
+        # left_dt_local is already timezone-aware, just convert to UTC
+        left_dt_utc = left_dt_local.astimezone(pytz.UTC)
         
         query = text("""
             SELECT timestamp_utc, status
@@ -252,18 +265,23 @@ class MinuteIndexReportService:
             timestamp_utc_str = row[0]
             status = row[1]
             
-            # Parse timestamp (UTC)
+            # Parse timestamp (UTC) and ensure timezone-aware
             if isinstance(timestamp_utc_str, str):
                 timestamp_utc_str = timestamp_utc_str.replace(' UTC', '')
                 timestamp_utc = datetime.fromisoformat(timestamp_utc_str)
+                if timestamp_utc.tzinfo is None:
+                    timestamp_utc = pytz.UTC.localize(timestamp_utc)
             else:
                 timestamp_utc = timestamp_utc_str
+                if timestamp_utc.tzinfo is None:
+                    timestamp_utc = pytz.UTC.localize(timestamp_utc)
             
-            # Keep in UTC and floor
-            dt_local_floored = self._floor_minute(timestamp_utc)
+            # Convert to local timezone (both dt_local and now_s_local are tz-aware in same tz)
+            dt_local = timestamp_utc.astimezone(store_tz)
+            dt_local_floored = self._floor_minute(dt_local)
             
-            # Calculate minute index
-            minute_index = self._minute_index(dt_local_floored, now_s)
+            # Calculate minute index with both timezone-aware datetimes
+            minute_index = self._minute_index(dt_local_floored, now_s_local)
             
             # Map status to active/inactive
             norm_status = self._map_to_active_inactive(status)
@@ -274,13 +292,13 @@ class MinuteIndexReportService:
             if minute_index not in minute_polls or timestamp_utc > minute_polls[minute_index][0]:
                 minute_polls[minute_index] = (timestamp_utc, norm_status)
         
-        # Filter to relevant range and sort
+        # Keep all polls within buffer range (don't filter out pre-window polls for seeding)
         polls_normalized = []
         for minute_index, (_, status) in minute_polls.items():
-            if minute_index <= 10080:  # Within week window (+ seed if < 1)
-                polls_normalized.append((minute_index, status))
+            polls_normalized.append((minute_index, status))
         
-        polls_normalized.sort(key=lambda x: x[0])
+        # Sort descending by index: larger index = older timestamp (chronological order)
+        polls_normalized.sort(key=lambda x: x[0], reverse=True)
         
         logger.debug(f"Store {store_id}: Normalized {len(polls_normalized)} polls")
         return polls_normalized
@@ -297,9 +315,9 @@ class MinuteIndexReportService:
     
     # Step 2: Build BH Intervals
     
-    def _build_bh_intervals(self, store_id: str, store_tz: Optional[pytz.BaseTzInfo], now_s: datetime) -> List[Tuple[int, int]]:
+    def _build_bh_intervals(self, store_id: str, store_tz: Optional[pytz.BaseTzInfo], now_s_local: datetime) -> List[Tuple[int, int]]:
         """
-        Build business hours intervals as index intervals
+        Build business hours intervals on local calendar days (IANA tz)
         """
         
         # Get menu hours
@@ -316,62 +334,98 @@ class MinuteIndexReportService:
             # No business hours found, assume 24/7
             return [(1, 10081)]
         
+        # Build business hours by day
+        bh_by_day = {}
+        for row in result:
+            day_of_week = int(row[0])
+            start_time_str = row[1] 
+            end_time_str = row[2]
+            if day_of_week not in bh_by_day:
+                bh_by_day[day_of_week] = []
+            bh_by_day[day_of_week].append((start_time_str, end_time_str))
+        
         bh_intervals = []
         
-        # Consider each UTC calendar day covering last 7 days (with buffer)
-        start_date = (now_s - timedelta(days=8)).date()
-        end_date = (now_s + timedelta(days=1)).date()
+        # Iterate LOCAL midnights in store timezone (not UTC days)
+        # Cover 8 days before to 1 day after to ensure full coverage
+        start_date = (now_s_local - timedelta(days=8)).date()
+        end_date = (now_s_local + timedelta(days=1)).date()
         
         current_date = start_date
         while current_date <= end_date:
-            weekday = current_date.weekday()  # 0=Monday, 6=Sunday
+            # Local midnight in store timezone
+            local_midnight = datetime.combine(current_date, datetime.min.time())
+            if store_tz:
+                local_midnight = store_tz.localize(local_midnight)
             
-            # Get business hours for this weekday
-            day_hours = [(row[1], row[2]) for row in result if int(row[0]) == weekday]
+            weekday = current_date.weekday()  # 0=Mon..6=Sun
             
-            if not day_hours:
-                current_date += timedelta(days=1)
-                continue
-            
-            # Process each business hour window for this day
-            windows = []
-            for start_time_str, end_time_str in day_hours:
-                start_time = self._parse_time_str(start_time_str)
-                end_time = self._parse_time_str(end_time_str)
-                
-                # Handle overnight windows (end < start)
-                if end_time <= start_time:
-                    # Split into two windows
-                    from datetime import time
-                    windows.append((start_time, time(23, 59, 59)))
-                    windows.append((time(0, 0, 0), end_time))
-                else:
-                    windows.append((start_time, end_time))
-            
-            # Merge overlapping/adjacent windows
-            windows = self._merge_time_windows(windows)
-            
-            # Convert to absolute datetime intervals and then to indices
-            for start_time, end_time in windows:
-                dt_start = datetime.combine(current_date, start_time)
-                dt_end = datetime.combine(current_date, end_time)
-                
-                # Convert to indices
-                # Note: end is exclusive, so maps to k(dt_end)
-                # start is inclusive, so maps to k(dt_start) 
-                idx_end = max(1, self._minute_index(dt_end, now_s))
-                idx_start = min(10081, self._minute_index(dt_start, now_s))
-                
-                if idx_end < idx_start:  # Valid interval
-                    bh_intervals.append((idx_end, idx_start))
+            # Get business hours for this local day
+            if weekday in bh_by_day:
+                for start_time_str, end_time_str in bh_by_day[weekday]:
+                    start_time = self._parse_time_str(start_time_str)
+                    end_time = self._parse_time_str(end_time_str)
+                    
+                    # Create local datetime objects (tz-aware)
+                    start_dt_local = datetime.combine(current_date, start_time)
+                    end_dt_local = datetime.combine(current_date, end_time)
+                    
+                    if store_tz:
+                        start_dt_local = store_tz.localize(start_dt_local)
+                        end_dt_local = store_tz.localize(end_dt_local)
+                    
+                    # Handle overnight business hours (end < start)
+                    if end_time <= start_time:
+                        # Split overnight: two segments
+                        # Segment 1: start_time to end of day
+                        end_of_day = datetime.combine(current_date, datetime.max.time().replace(microsecond=0))
+                        if store_tz:
+                            end_of_day = store_tz.localize(end_of_day)
+                        
+                        idx_start1 = self._minute_index(start_dt_local, now_s_local)
+                        idx_end1 = self._minute_index(end_of_day, now_s_local)
+                        if idx_start1 > idx_end1:  # Valid interval (indices count backwards)
+                            bh_intervals.append((idx_end1, idx_start1))
+                        
+                        # Segment 2: start of next day to end_time
+                        next_date = current_date + timedelta(days=1)
+                        start_of_next_day = datetime.combine(next_date, datetime.min.time())
+                        end_dt_next = datetime.combine(next_date, end_time)
+                        
+                        if store_tz:
+                            start_of_next_day = store_tz.localize(start_of_next_day)
+                            end_dt_next = store_tz.localize(end_dt_next)
+                        
+                        idx_start2 = self._minute_index(start_of_next_day, now_s_local)
+                        idx_end2 = self._minute_index(end_dt_next, now_s_local)
+                        if idx_start2 > idx_end2:  # Valid interval
+                            bh_intervals.append((idx_end2, idx_start2))
+                    else:
+                        # Normal hours within same day
+                        idx_start = self._minute_index(start_dt_local, now_s_local)
+                        idx_end = self._minute_index(end_dt_local, now_s_local)
+                        if idx_start > idx_end:  # Valid interval (indices count backwards)
+                            bh_intervals.append((idx_end, idx_start))
             
             current_date += timedelta(days=1)
         
-        # Merge and sort intervals
+        # Sort and merge overlapping intervals
+        bh_intervals.sort()
         bh_intervals = self._merge_sorted_intervals(bh_intervals)
         
         logger.debug(f"Store {store_id}: Built {len(bh_intervals)} BH intervals")
         return bh_intervals
+    
+    def _parse_time_components(self, time_str: str) -> tuple:
+        """Parse time string and return (hour, minute, second)"""
+        try:
+            parts = time_str.split(':')
+            hour = int(parts[0])
+            minute = int(parts[1])
+            second = int(parts[2]) if len(parts) > 2 else 0
+            return hour, minute, second
+        except:
+            return 0, 0, 0  # Default to start of day
     
     def _parse_time_str(self, time_str: str) -> datetime.time:
         """Parse time string like '09:00:00'"""
@@ -435,212 +489,67 @@ class MinuteIndexReportService:
     
     # Step 3: Build Status Spans
     
-    def _build_status_spans_with_seed_before(self, polls_normalized: List[Tuple[int, str]], W: Tuple[int, int], now_s: datetime) -> List[Tuple[int, int, str]]:
+    def _build_status_spans_carry_forward(self, polls_idx: List[Tuple[int,str]], W: Tuple[int,int]) -> List[Tuple[int,int,str]]:
         """
-        Build status spans with "seed before" logic
-        When status changes from inactive -> active, start active period from previous inactive timestamp
-        Returns list of (start_idx, end_idx, status) intervals
+        Pure carry-forward + seed-before timeline (no midpoint, no 23:00)
+        polls_idx: (k, status) where k is minute index vs now_s_local
         """
+        if not polls_idx:
+            return [(W[0], W[1], 'inactive')]
         
-        if not polls_normalized:
-            return []
-        
-        status_spans = []
-        start_w = W[1] - 1  # 10080 (start of week window)
-        
-        # Find seed status (latest poll <= start_w)
-        seed_status = None
-        for idx, status in polls_normalized:
-            if idx <= start_w:
-                seed_status = status
-        
-        if seed_status is None:
-            # Use first in-window poll's status
-            seed_status = polls_normalized[0][1]
-        
-        # Filter polls to window W
-        window_polls = [(idx, status) for idx, status in polls_normalized if W[0] <= idx < W[1]]
-        
+        # seed = last poll at or BEFORE band start (k >= 10080)
+        start_k = W[1]-1  # 10080
+        seed_status = 'inactive'  # fallback
+        for k, s in sorted(polls_idx, key=lambda x: x[0]):  # ascending k
+            if k >= start_k:
+                seed_status = s
+                break
+                
+        # window polls (ascending k makes sense if you always create (min,max))
+        window_polls = [(k,s) for (k,s) in polls_idx if W[0] <= k < W[1]]
         if not window_polls:
-            # No polls in window, entire window has seed status
             return [(W[0], W[1], seed_status)]
-        
-        # Build status timeline with "seed before" logic
-        timeline = []
-        
-        # Check if first poll in window is already active
-        if window_polls and window_polls[0][1] == "active":
-            # Store was already active at start of window
-            # Find the last inactive poll before the window
-            last_inactive_before_window = None
-            for idx, status in polls_normalized:
-                if idx >= W[1] and status == "inactive":  # Polls outside window
-                    last_inactive_before_window = idx
-                    break
             
-            if last_inactive_before_window:
-                # Start active period from the last inactive before window
-                timeline.append((last_inactive_before_window, window_polls[0][0], "active"))
-                current_idx = window_polls[0][0]
-                current_status = "active"
-            else:
-                # No inactive poll found, start from beginning of window
-                current_idx = W[1] - 1
-                current_status = "active"
-        else:
-            # Start with seed status
-            current_idx = W[1] - 1  # Start from beginning of window (10080)
-            current_status = seed_status
-        
-        # Process each poll in window
-        prev_idx = current_idx
-        prev_status = current_status
-        
-        for poll_idx, poll_status in window_polls:
-            if poll_status == prev_status:
-                # Status continues, just update position
-                prev_idx = poll_idx
-            else:
-                # Status change - implement "seed before" logic
-                if prev_status == "inactive" and poll_status == "active":
-                    # When changing from inactive -> active, start active from previous inactive timestamp
-                    # Don't create a midpoint, just continue from prev_idx
-                    timeline.append((prev_idx, poll_idx, poll_status))
-                else:
-                    # For other transitions, use midpoint interpolation
-                    midpoint = (prev_idx + poll_idx) // 2
-                    
-                    # Close previous span
-                    if prev_idx < midpoint:
-                        timeline.append((prev_idx, midpoint, prev_status))
-                    
-                    # Start new span
-                    timeline.append((midpoint, poll_idx, poll_status))
-                
-                prev_idx = poll_idx
-                prev_status = poll_status
-        
-        # Extend to end of window with 23:00 cutoff logic
-        if prev_idx < W[1]:
-            # Apply 23:00 cutoff logic for active periods
-            if prev_status == "active":
-                # Find the 23:00 cutoff minute index
-                cutoff_time = now_s.replace(hour=23, minute=0, second=0, microsecond=0)
-                cutoff_idx = self._minute_index(cutoff_time, now_s)
-                
-                # Use the earlier of W[1] or cutoff_idx
-                end_idx = min(W[1], cutoff_idx)
-                if prev_idx < end_idx:
-                    timeline.append((prev_idx, end_idx, prev_status))
-            else:
-                # For inactive periods, use full window
-                timeline.append((prev_idx, W[1], prev_status))
-        
-        # Merge adjacent spans with same status
-        if timeline:
-            status_spans = [timeline[0]]
-            for start, end, status in timeline[1:]:
-                last_start, last_end, last_status = status_spans[-1]
-                
-                if status == last_status and start == last_end:
-                    # Merge adjacent spans
-                    status_spans[-1] = (last_start, end, status)
-                else:
-                    status_spans.append((start, end, status))
-        
-        # Clamp all spans to W and filter valid ones
-        status_spans = [
-            (max(start, W[0]), min(end, W[1]), status)
-            for start, end, status in status_spans
-            if max(start, W[0]) < min(end, W[1])
-        ]
-        
-        logger.debug(f"Built {len(status_spans)} status spans with seed before logic")
-        return status_spans
+        spans = []
+        prev_k = start_k
+        prev_s = seed_status
     
-    def _build_status_spans(self, polls_normalized: List[Tuple[int, str]], W: Tuple[int, int]) -> List[Tuple[int, int, str]]:
-        """
-        Build status spans with midpoint interpolation
-        Returns list of (start_idx, end_idx, status) intervals
-        """
-        
-        if not polls_normalized:
+        # Iterate from window start toward now: use DESCENDING k for clarity
+        for k, s in sorted(window_polls, key=lambda x: -x[0]):
+            # segment between [k, prev_k) has status = prev_s (carry-forward)
+            a, b = sorted((k, prev_k))
+            if a < b:
+                spans.append((a, b, prev_s))
+            prev_k, prev_s = k, s
+    
+        # Tail to the window end (k=1)
+        a, b = sorted((W[0], prev_k))
+        if a < b:
+            spans.append((a, b, prev_s))
+    
+        # Merge adjacents
+        out = []
+        for st, en, stt in sorted(spans):
+            if out and out[-1][2] == stt and out[-1][1] == st:
+                out[-1] = (out[-1][0], en, stt)
+            else:
+                out.append((st, en, stt))
+        return out
+
+    def _merge_sorted_intervals(self, intervals: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+        """Merge overlapping sorted intervals"""
+        if not intervals:
             return []
         
-        status_spans = []
-        start_w = W[1] - 1  # 10080 (start of week window)
-        
-        # Find seed status (latest poll <= start_w)
-        seed_status = None
-        for idx, status in polls_normalized:
-            if idx <= start_w:
-                seed_status = status
-        
-        if seed_status is None:
-            # Use first in-window poll's status
-            seed_status = polls_normalized[0][1]
-        
-        # Filter polls to window W
-        window_polls = [(idx, status) for idx, status in polls_normalized if W[0] <= idx < W[1]]
-        
-        if not window_polls:
-            # No polls in window, entire window has seed status
-            return [(W[0], W[1], seed_status)]
-        
-        # Build status timeline
-        timeline = []
-        
-        # Start with seed status
-        current_idx = W[1] - 1  # Start from beginning of window (10080)
-        current_status = seed_status
-        
-        # Process each poll in window
-        prev_idx = current_idx
-        prev_status = current_status
-        
-        for poll_idx, poll_status in window_polls:
-            if poll_status == prev_status:
-                # Status continues, just update position
-                prev_idx = poll_idx
+        merged = [intervals[0]]
+        for start, end in intervals[1:]:
+            last_start, last_end = merged[-1]
+            if start <= last_end:
+                merged[-1] = (last_start, max(last_end, end))
             else:
-                # Status change - use midpoint interpolation
-                midpoint = (prev_idx + poll_idx) // 2
-                
-                # Close previous span
-                if prev_idx < midpoint:
-                    timeline.append((prev_idx, midpoint, prev_status))
-                
-                # Start new span
-                timeline.append((midpoint, poll_idx, poll_status))
-                prev_idx = poll_idx
-                prev_status = poll_status
-        
-        # Extend to end of window
-        if prev_idx < W[1]:
-            timeline.append((prev_idx, W[1], prev_status))
-        
-        # Merge adjacent spans with same status
-        if timeline:
-            status_spans = [timeline[0]]
-            for start, end, status in timeline[1:]:
-                last_start, last_end, last_status = status_spans[-1]
-                
-                if status == last_status and start == last_end:
-                    # Merge adjacent spans
-                    status_spans[-1] = (last_start, end, status)
-                else:
-                    status_spans.append((start, end, status))
-        
-        # Clamp all spans to W and filter valid ones
-        status_spans = [
-            (max(start, W[0]), min(end, W[1]), status)
-            for start, end, status in status_spans
-            if max(start, W[0]) < min(end, W[1])
-        ]
-        
-        logger.debug(f"Built {len(status_spans)} status spans")
-        return status_spans
-    
+                merged.append((start, end))
+        return merged
+
     # Step 4: Two-Pointer Sweep
     
     def _two_pointer_sweep(self, bh_intervals: List[Tuple[int, int]], 
@@ -731,6 +640,41 @@ class MinuteIndexReportService:
         
         with open(report_file, 'w', encoding='utf-8') as f:
             json.dump(full_report, f, indent=2, default=str)
+        
+        logger.info(f"Minute-index report saved to {report_file}")
+        return report_file
+    
+    def _save_report_csv(self, report_id: str, report_data: List[Dict], max_utc: datetime) -> Path:
+        """Save the report as CSV file"""
+        report_file = self.reports_dir / f"{report_id}.csv"
+        
+        header = [
+            "store_id",
+            "uptime_last_hour (minutes)",
+            "uptime_last_day (hours)",
+            "uptime_last_week (hours)",
+            "downtime_last_hour (minutes)",
+            "downtime_last_day (hours)",
+            "downtime_last_week (hours)",
+            "timezone",
+            "now_s"
+        ]
+        
+        with open(report_file, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(header)
+            for store in report_data:
+                writer.writerow([
+                    store["store_id"],
+                    store["uptime_last_hour"],
+                    round(store["uptime_last_day"], 2),
+                    round(store["uptime_last_week"], 2),
+                    store["downtime_last_hour"],
+                    round(store["downtime_last_day"], 2),
+                    round(store["downtime_last_week"], 2),
+                    store["timezone"],
+                    store["now_s"]
+                ])
         
         logger.info(f"Minute-index report saved to {report_file}")
         return report_file
