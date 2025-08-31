@@ -10,7 +10,6 @@ import logging
 from pathlib import Path
 import pytz
 from collections import defaultdict
-import math
 
 from app.core.config import settings
 
@@ -96,6 +95,9 @@ class MinuteIndexReportService:
         result = self.db.execute(query).fetchone()
         
         max_timestamp_str = result[0]
+        if max_timestamp_str is None:
+            raise ValueError("raw.store_status is empty; no MAX(timestamp_utc)")
+            
         if isinstance(max_timestamp_str, str):
             # Handle CSV format with ' UTC' suffix
             max_timestamp_str = max_timestamp_str.replace(' UTC', '')
@@ -139,7 +141,11 @@ class MinuteIndexReportService:
         # Step 0: Setup timezone and NOW_s in local timezone
         # Default to America/Chicago for US-based stores when timezone is missing
         # TODO: Consider geographic distribution analysis for better defaults
-        store_tz = pytz.timezone(tz_str or "America/Chicago")
+        try:
+            store_tz = pytz.timezone(tz_str or "America/Chicago")
+        except Exception:
+            logger.warning(f"Invalid timezone '{tz_str}' for store {store_id}; using UTC")
+            store_tz = pytz.UTC
         now_s_local = self._floor_minute(max_utc.astimezone(store_tz))
         
         logger.debug(f"Store {store_id}: NOW_s_local = {now_s_local} (local timezone: {tz_str})")
@@ -211,11 +217,17 @@ class MinuteIndexReportService:
         """Floor datetime to minute boundary"""
         return dt.replace(second=0, microsecond=0)
     
+    def _ceil_minute(self, dt: datetime) -> datetime:
+        """Ceiling to next minute boundary (for inclusive BH end times)"""
+        if dt.second == 0 and dt.microsecond == 0:
+            return dt
+        return (dt + timedelta(minutes=1)).replace(second=0, microsecond=0)
+    
     def _minute_index(self, dt_local: datetime, now_s_local: datetime) -> int:
         """Map local datetime dt_local (floored to minute) to index k
         Both dt_local and now_s_local MUST be tz-aware in the SAME timezone"""
         delta_minutes = (now_s_local - dt_local).total_seconds() / 60.0
-        return math.ceil(delta_minutes)
+        return max(1, int(delta_minutes) + 1)
     
     def _index_to_datetime(self, k: int, now_s_local: datetime) -> datetime:
         """Inverse: dt(k) = now_s_local - k minutes"""
@@ -230,6 +242,15 @@ class MinuteIndexReportService:
     def _clamp(self, value: float, lo: float, hi: float) -> float:
         """Clamp value between lo and hi"""
         return max(lo, min(hi, value))
+    
+    def _localize_safe(self, tz, dt):
+        """DST-safe timezone localization"""
+        try:
+            return tz.localize(dt, is_dst=None)
+        except pytz.AmbiguousTimeError:
+            return tz.localize(dt, is_dst=True)
+        except pytz.NonExistentTimeError:
+            return tz.localize(dt + timedelta(hours=1), is_dst=True)
     
     # Step 1: Load & Normalize Polls
     
@@ -356,7 +377,7 @@ class MinuteIndexReportService:
             # Local midnight in store timezone
             local_midnight = datetime.combine(current_date, datetime.min.time())
             if store_tz:
-                local_midnight = store_tz.localize(local_midnight)
+                local_midnight = self._localize_safe(store_tz, local_midnight)
             
             weekday = current_date.weekday()  # 0=Mon..6=Sun
             
@@ -371,8 +392,8 @@ class MinuteIndexReportService:
                     end_dt_local = datetime.combine(current_date, end_time)
                     
                     if store_tz:
-                        start_dt_local = store_tz.localize(start_dt_local)
-                        end_dt_local = store_tz.localize(end_dt_local)
+                        start_dt_local = self._localize_safe(store_tz, start_dt_local)
+                        end_dt_local = self._localize_safe(store_tz, end_dt_local)
                     
                     # Handle overnight business hours (end < start)
                     if end_time <= start_time:
@@ -380,10 +401,10 @@ class MinuteIndexReportService:
                         # Segment 1: start_time to end of day
                         end_of_day = datetime.combine(current_date, datetime.max.time().replace(microsecond=0))
                         if store_tz:
-                            end_of_day = store_tz.localize(end_of_day)
+                            end_of_day = self._localize_safe(store_tz, end_of_day)
                         
-                        idx_start1 = self._minute_index(start_dt_local, now_s_local)
-                        idx_end1 = self._minute_index(end_of_day, now_s_local)
+                        idx_start1 = self._minute_index(self._floor_minute(start_dt_local), now_s_local)
+                        idx_end1 = self._minute_index(self._ceil_minute(end_of_day), now_s_local)
                         if idx_start1 > idx_end1:  # Valid interval (indices count backwards)
                             bh_intervals.append((idx_end1, idx_start1))
                         
@@ -393,17 +414,17 @@ class MinuteIndexReportService:
                         end_dt_next = datetime.combine(next_date, end_time)
                         
                         if store_tz:
-                            start_of_next_day = store_tz.localize(start_of_next_day)
-                            end_dt_next = store_tz.localize(end_dt_next)
+                            start_of_next_day = self._localize_safe(store_tz, start_of_next_day)
+                            end_dt_next = self._localize_safe(store_tz, end_dt_next)
                         
-                        idx_start2 = self._minute_index(start_of_next_day, now_s_local)
-                        idx_end2 = self._minute_index(end_dt_next, now_s_local)
+                        idx_start2 = self._minute_index(self._floor_minute(start_of_next_day), now_s_local)
+                        idx_end2 = self._minute_index(self._ceil_minute(end_dt_next), now_s_local)
                         if idx_start2 > idx_end2:  # Valid interval
                             bh_intervals.append((idx_end2, idx_start2))
                     else:
                         # Normal hours within same day
-                        idx_start = self._minute_index(start_dt_local, now_s_local)
-                        idx_end = self._minute_index(end_dt_local, now_s_local)
+                        idx_start = self._minute_index(self._floor_minute(start_dt_local), now_s_local)
+                        idx_end = self._minute_index(self._ceil_minute(end_dt_local), now_s_local)
                         if idx_start > idx_end:  # Valid interval (indices count backwards)
                             bh_intervals.append((idx_end, idx_start))
             
@@ -500,10 +521,14 @@ class MinuteIndexReportService:
         # seed = last poll at or BEFORE band start (k >= 10080)
         start_k = W[1]-1  # 10080
         seed_status = 'inactive'  # fallback
-        for k, s in sorted(polls_idx, key=lambda x: x[0]):  # ascending k
-            if k >= start_k:
-                seed_status = s
-                break
+        
+        candidates = [(k, s) for (k, s) in polls_idx if k >= start_k]
+        if candidates:
+            seed_status = min(candidates, key=lambda x: x[0])[1]  # nearest pre-window
+        else:
+            in_window = [(k, s) for (k, s) in polls_idx if W[0] <= k < W[1]]
+            if in_window:
+                seed_status = min(in_window, key=lambda x: x[0])[1]  # earliest inside
                 
         # window polls (ascending k makes sense if you always create (min,max))
         window_polls = [(k,s) for (k,s) in polls_idx if W[0] <= k < W[1]]
@@ -655,9 +680,7 @@ class MinuteIndexReportService:
             "uptime_last_week (hours)",
             "downtime_last_hour (minutes)",
             "downtime_last_day (hours)",
-            "downtime_last_week (hours)",
-            "timezone",
-            "now_s"
+            "downtime_last_week (hours)"
         ]
         
         with open(report_file, 'w', newline='', encoding='utf-8') as f:
@@ -671,9 +694,7 @@ class MinuteIndexReportService:
                     round(store["uptime_last_week"], 2),
                     store["downtime_last_hour"],
                     round(store["downtime_last_day"], 2),
-                    round(store["downtime_last_week"], 2),
-                    store["timezone"],
-                    store["now_s"]
+                    round(store["downtime_last_week"], 2)
                 ])
         
         logger.info(f"Minute-index report saved to {report_file}")
