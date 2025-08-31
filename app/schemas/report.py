@@ -40,10 +40,11 @@ class ReportUpdate(BaseModel):
 
 class ReportResponse(BaseModel):
     """
-    Trigger response. Contract requires status 'RUNNING' (string) alongside report_id.
+    Trigger response. Return current status with report_id and message.
     """
     report_id: str = Field(..., description="Unique report identifier")
-    status: Literal["RUNNING"] = Field(..., description="Report status (RUNNING)")
+    status: Literal["PENDING", "RUNNING", "COMPLETED", "FAILED"] = Field(..., description="Report status")
+    message: str = Field(..., description="Human-readable message")
 
     class Config:
         from_attributes = True
@@ -52,11 +53,11 @@ class ReportResponse(BaseModel):
 class ReportStatusResponse(BaseModel):
     """
     Status response for GET /get_report.
-    Status values are 'Running' | 'Complete' | 'Failed' (per assignment spec).
+    Status values match ReportStatus enum for consistency.
     """
-    status: Literal["Running", "Complete", "Failed"] = Field(..., description="Current report status")
     report_id: str = Field(..., description="Report identifier")
-    url: Optional[str] = Field(None, description="Report URL (only when Complete)")
+    status: Literal["PENDING", "RUNNING", "COMPLETED", "FAILED"] = Field(..., description="Current report status")
+    url: Optional[str] = Field(None, description="Report URL (only when COMPLETED)")
 
     class Config:
         from_attributes = True
