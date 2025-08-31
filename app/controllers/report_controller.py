@@ -64,11 +64,16 @@ class ReportController:
                     logger.error(f"Unknown error creating report: {result}")
                     raise HTTPException(status_code=500, detail="Unknown error occurred")
             
-            # Success case
+            # Success case - automatically set to RUNNING
             report_data = result["data"]
-            logger.info(f"Report {report_data['report_id']} created successfully via controller")
+            report_id = report_data["report_id"]
             
-            return ReportResponse(report_id=report_data["report_id"])
+            # Immediately set to RUNNING status (this simulates Celery enqueue)
+            self.service.set_report_status_and_url(report_id, "RUNNING")
+            
+            logger.info(f"Report {report_id} created and set to RUNNING via controller")
+            
+            return ReportResponse(report_id=report_id, status="RUNNING")
             
         except HTTPException:
             # Re-raise HTTP exceptions
@@ -80,16 +85,16 @@ class ReportController:
     
     def get_report_status(self, report_id: str) -> ReportStatusResponse:
         """
-        Controller: Handle get report status request
-        Validates input and returns formatted response
+        Controller: Handle get report status request with URL business logic
+        Validates input and returns formatted response with URL when appropriate
         """
         try:
             # Input validation
             if not report_id or not report_id.strip():
                 raise HTTPException(status_code=400, detail="report_id is required")
             
-            # Call service layer
-            result = self.service.get_report_by_id(report_id.strip())
+            # Call service layer with URL business logic
+            result = self.service.get_report_with_url_logic(report_id.strip())
             
             if not result["success"]:
                 error_code = result["error_code"]
@@ -108,13 +113,14 @@ class ReportController:
                     logger.error(f"Unknown error fetching report {report_id}: {result}")
                     raise HTTPException(status_code=500, detail="Unknown error occurred")
             
-            # Success case
+            # Success case with URL business logic applied
             report_data = result["data"]
-            logger.info(f"Report {report_id} status retrieved via controller: {report_data['status']}")
+            logger.info(f"Report {report_id} status retrieved via controller: {report_data['status']}, URL: {report_data['url'] is not None}")
             
             return ReportStatusResponse(
                 status=report_data["status"],
-                report_id=report_id
+                report_id=report_id,
+                url=report_data["url"]
             )
             
         except HTTPException:
@@ -281,4 +287,53 @@ class ReportController:
             raise
         except Exception as e:
             logger.error(f"Unexpected error in update_report_status controller: {e}")
+            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    
+    def set_report_status_and_url(self, report_id: str, status: str, url: str = None) -> ReportDetailResponse:
+        """
+        Controller: Handle report status and URL update (for compute workers)
+        """
+        try:
+            # Input validation
+            if not report_id or not report_id.strip():
+                raise HTTPException(status_code=400, detail="report_id is required")
+            
+            if not status or not status.strip():
+                raise HTTPException(status_code=400, detail="status is required")
+            
+            # Call service layer with URL business logic
+            result = self.service.set_report_status_and_url(
+                report_id.strip(), 
+                status.strip(), 
+                url.strip() if url else None
+            )
+            
+            if not result["success"]:
+                error_code = result["error_code"]
+                error_data = result["data"]
+                
+                if error_code == "NOT_FOUND":
+                    raise HTTPException(status_code=404, detail="report_id not found")
+                elif error_code == "INVALID_STATUS":
+                    raise HTTPException(status_code=400, detail=error_data.get("message"))
+                else:
+                    error_msg = error_data.get("message", "Failed to update report")
+                    raise HTTPException(status_code=500, detail=error_msg)
+            
+            # Success case
+            report_data = result["data"]
+            logger.info(f"Controller: Report {report_id} updated via set_status_and_url: {status}, URL: {url}")
+            
+            return ReportDetailResponse(
+                report_id=report_data["report_id"],
+                status=report_data["status"],
+                url=report_data["url"],
+                created_at=report_data["report"].created_at,
+                updated_at=report_data["updated_at"]
+            )
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error in set_report_status_and_url controller: {e}")
             raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

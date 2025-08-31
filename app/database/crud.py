@@ -44,13 +44,13 @@ class ReportCRUD:
     
     @staticmethod
     def get_latest_pending_report(db: Session) -> Optional[Report]:
-        """Get the most recent PENDING report"""
+        """Get the most recent PENDING or RUNNING report"""
         try:
             return db.query(Report).filter(
-                Report.status == "PENDING"
+                Report.status.in_(["PENDING", "RUNNING"])
             ).order_by(desc(Report.created_at)).first()
         except Exception as e:
-            logger.error(f"Error getting latest pending report: {e}")
+            logger.error(f"Error getting latest pending/running report: {e}")
             return None
     
     @staticmethod
@@ -68,6 +68,25 @@ class ReportCRUD:
         except Exception as e:
             db.rollback()
             logger.error(f"Error updating report {report_id} status: {e}")
+            return None
+    
+    @staticmethod
+    def set_report_status_and_url(db: Session, report_id: str, status: str, url: Optional[str] = None) -> Optional[Report]:
+        """Update report status and URL (business logic helper)"""
+        try:
+            db_report = db.query(Report).filter(Report.report_id == report_id).first()
+            if db_report:
+                db_report.status = status
+                if url is not None:
+                    db_report.url = url
+                db.commit()
+                db.refresh(db_report)
+                logger.info(f"Report {report_id} updated: status={status}, url={url}")
+                return db_report
+            return None
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error updating report {report_id} status and URL: {e}")
             return None
     
     @staticmethod
