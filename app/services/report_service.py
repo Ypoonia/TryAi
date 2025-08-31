@@ -73,23 +73,27 @@ class ReportService:
                 "message": f"Error validating report creation: {str(e)}"
             }
     
-    def create_new_report(self, comprehensive: bool = True) -> Dict[str, Any]:
+    def create_new_report(self) -> Dict[str, Any]:
         """
         Business logic: Create a new report if none are pending
-        Always uses comprehensive processing (full batch) by default
+        Always uses full batch processing (50000 stores)
         """
         try:
             # Check if we can create a new report
             validation = self.can_create_new_report()
             if not validation["can_create"]:
-                return validation
+                return {
+                    "success": False,
+                    "error_code": "CREATION_BLOCKED",
+                    "data": {"message": validation.get("message", "Cannot create report")}
+                }
             
             # Generate unique report ID
             report_id = self.generate_report_id()
             
             # Create database record
-            success = self.crud.create_report(self.db, report_id)
-            if not success:
+            db_report = self.crud.create_report(self.db, report_id)
+            if not db_report:
                 return {
                     "success": False,
                     "error_code": "DB_CREATE_FAILED",
@@ -101,7 +105,7 @@ class ReportService:
             
             # Trigger async processing - ALWAYS use full batch (50000 stores)
             max_stores = 50000  # Process all stores
-            logger.info(f"Triggering report {report_id} with max_stores={max_stores} (comprehensive={comprehensive})")
+            logger.info(f"Triggering report {report_id} with max_stores={max_stores} (full batch)")
             generate_report.delay(report_id, max_stores)
             
             return {

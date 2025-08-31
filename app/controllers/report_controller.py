@@ -21,10 +21,10 @@ class ReportController:
         self.db = db
         self.service = ReportService(db)
     
-    def trigger_report(self, comprehensive: bool = False) -> ReportResponse:
+    def trigger_report(self) -> ReportResponse:
         """Handle report trigger request"""
         try:
-            result = self.service.create_new_report(comprehensive)
+            result = self.service.create_new_report()
             
             if not result["success"]:
                 error_code = result["error_code"]
