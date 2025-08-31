@@ -12,7 +12,7 @@ from typing import Optional, Literal
 class ReportStatus(str, Enum):
     PENDING = "PENDING"
     RUNNING = "RUNNING"
-    COMPLETED = "COMPLETED"
+    COMPLETE = "COMPLETE"
     FAILED = "FAILED"
 
 
@@ -23,7 +23,7 @@ class ReportResponse(BaseModel):
     Trigger response. Return current status with report_id and message.
     """
     report_id: str = Field(..., description="Unique report identifier")
-    status: Literal["PENDING", "RUNNING", "COMPLETED", "FAILED"] = Field(..., description="Report status")
+    status: Literal["PENDING", "RUNNING", "COMPLETE", "FAILED"] = Field(..., description="Report status")
     message: str = Field(..., description="Human-readable message")
 
     class Config:
@@ -36,8 +36,8 @@ class ReportStatusResponse(BaseModel):
     Status values match ReportStatus enum for consistency.
     """
     report_id: str = Field(..., description="Report identifier")
-    status: Literal["PENDING", "RUNNING", "COMPLETED", "FAILED"] = Field(..., description="Current report status")
-    url: Optional[str] = Field(None, description="Report URL (only when COMPLETED)")
+    status: Literal["PENDING", "RUNNING", "COMPLETE", "FAILED"] = Field(..., description="Current report status")
+    url: Optional[str] = Field(None, description="Report URL (only when COMPLETE)")
 
     class Config:
         from_attributes = True

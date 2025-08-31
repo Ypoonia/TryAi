@@ -27,10 +27,10 @@ def generate_report(self, report_id: str, max_stores: int = 50_000):
     Generate the store monitoring report asynchronously.
 
     Flow:
-      1) If report is terminal (COMPLETED/FAILED) -> exit (idempotent).
-      2) If PENDING -> set to RUNNING.
-      3) Run MinuteIndexReportService to produce file.
-      4) On success -> mark COMPLETED with internal file:// URL.
+      1) If report is terminal (COMPLETE/FAILED) -> exit (idempotent).
+      2) Mark as RUNNING if not already running.
+      3) Execute report (MinuteIndexReportService).
+      4) On success -> mark COMPLETE with internal file:// URL.
          On failure/exception -> mark FAILED.
     """
     logger.info("Starting async report generation", extra={"report_id": report_id, "max_stores": max_stores})
@@ -51,13 +51,13 @@ def generate_report(self, report_id: str, max_stores: int = 50_000):
             }
 
         # Idempotency: skip if already terminal
-        if rpt.status in (ReportStatus.COMPLETED.value, ReportStatus.FAILED.value):
+        if rpt.status in (ReportStatus.COMPLETE.value, ReportStatus.FAILED.value):
             logger.info(
                 "Report already in terminal state; skipping generation",
                 extra={"report_id": report_id, "status": rpt.status},
             )
             return {
-                "success": rpt.status == ReportStatus.COMPLETED.value,
+                "success": rpt.status == ReportStatus.COMPLETE.value,
                 "report_id": report_id,
                 "file_url": rpt.url,
                 "status": rpt.status,
@@ -78,7 +78,7 @@ def generate_report(self, report_id: str, max_stores: int = 50_000):
             # Store as internal file URL so UrlResolver can expose it later
             internal_url = file_path if file_path.startswith("file://") else f"file://{file_path}"
 
-            ReportCRUD.set_report_status_and_url(db, report_id, ReportStatus.COMPLETED, internal_url)
+            ReportCRUD.set_report_status_and_url(db, report_id, ReportStatus.COMPLETE, internal_url)
             logger.info("Report generation completed", extra={"report_id": report_id, "file_url": internal_url})
 
             return {

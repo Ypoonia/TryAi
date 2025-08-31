@@ -39,11 +39,11 @@ class ReportController:
             return {
                 "status_code": 202,  # Accepted for processing
                 "headers": {"Retry-After": "60"},  # Check again in 60 seconds
-                "body": ReportResponse(
-                    report_id=report_id,
-                    status="PENDING",
-                    message="Report generation started",
-                ),
+                "body": {
+                    "report_id": report_id,
+                    "status": "PENDING",
+                    "message": "Report generation started",
+                },
             }
             
         except RepositoryError as e:
@@ -81,14 +81,20 @@ class ReportController:
                 },
             )
             
+            # Build response body as dictionary
+            body = {
+                "report_id": report_id,
+                "status": status,
+            }
+            
+            # Only include URL for completed reports
+            if public_url:
+                body["url"] = public_url
+            
             return {
                 "status_code": 200,
                 "headers": headers,
-                "body": ReportStatusResponse(
-                    report_id=report_id,
-                    status=status,
-                    url=public_url,
-                ),
+                "body": body,
             }
             
         except ReportNotFound:

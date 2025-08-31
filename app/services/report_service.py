@@ -83,7 +83,7 @@ class ReportService:
             if status == ReportStatus.FAILED.value:
                 return "Failed", None
 
-            # COMPLETED
+            # COMPLETE
             return "Complete", self.urls.to_public(rpt.url)
 
         except RepositoryError:
@@ -96,8 +96,8 @@ class ReportService:
     # -------- Methods for worker to call --------
 
     def mark_completed(self, report_id: str, internal_url: str) -> None:
-        self.repo.set_report_status_and_url(self.db, report_id, ReportStatus.COMPLETED, internal_url)
-        logger.info("Report marked COMPLETED", extra={"report_id": report_id})
+        self.repo.set_report_status_and_url(self.db, report_id, ReportStatus.COMPLETE, internal_url)
+        logger.info("Report marked COMPLETE", extra={"report_id": report_id})
 
     def mark_failed(self, report_id: str) -> None:
         self.repo.set_report_status_and_url(self.db, report_id, ReportStatus.FAILED)
