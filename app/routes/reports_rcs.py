@@ -22,12 +22,12 @@ def trigger_report(controller: ReportController = Depends(get_report_controller)
     return controller.trigger_report()
 
 
-@router.get("/get_report", summary="Get report status or CSV file")
+@router.get("/get_report", summary="Get report status and URL")
 def get_report(
     report_id: str,
     controller: ReportController = Depends(get_report_controller)
 ):
-    """Get report status or download CSV when ready"""
+    """Get report status and URL when ready"""
     status_result = controller.get_report_status(report_id)
     
     if status_result.status == "COMPLETED":
