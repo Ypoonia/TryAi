@@ -30,25 +30,27 @@ def get_report(
     """Get report status or download CSV when ready"""
     status_result = controller.get_report_status(report_id)
     
-    if status_result.status not in ["COMPLETE", "COMPLETED"]:
+    if status_result.status != "COMPLETE":
         return {"status": "Running"}
     
-    if status_result.url:
-        file_path = status_result.url.replace("file://", "")
-        if file_path.startswith("/"):
-            file_path = file_path[1:]
-        
-        import os
-        if os.path.exists(file_path):
-            with open(file_path, 'r', encoding='utf-8') as f:
-                csv_content = f.read()
-            
-            return Response(
-                content=csv_content,
-                media_type="text/csv",
-                headers={"Content-Disposition": f"attachment; filename={report_id}.csv"}
-            )
-        else:
-            raise HTTPException(status_code=404, detail="Report file not found")
+    return {"status": "Complete", "url": status_result.url}
     
-    return {"status": "Complete"}
+    # if status_result.url:
+    #     file_path = status_result.url.replace("file://", "")
+    #     if file_path.startswith("/"):
+    #         file_path = file_path[1:]
+    #     
+    #     import os
+    #     if os.path.exists(file_path):
+    #         with open(file_path, 'r', encoding='utf-8') as f:
+    #             csv_content = f.read()
+    #         
+    #         return Response(
+    #             content=csv_content,
+    #             media_type="text/csv",
+    #             headers={"Content-Disposition": f"attachment; filename={report_id}.csv"}
+    #         )
+    #     else:
+    #         raise HTTPException(status_code=404, detail="Report file not found")
+    # 
+    # return {"status": "Complete"}
