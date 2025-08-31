@@ -53,22 +53,14 @@ class ComprehensiveStoreReportService:
             all_store_ids = self._get_all_unique_store_ids()
             logger.info(f"Found {len(all_store_ids)} unique store IDs")
             
-            # Step 2: Get latest data for normalization
-            timezones_data = self._get_latest_timezones_data()
-            menu_hours_data = self._get_latest_menu_hours_data()
-            logger.info(f"Loaded timezone data for {len(timezones_data)} stores")
-            logger.info(f"Loaded menu hours for {len(menu_hours_data)} stores")
-            
-            # Step 3: Process each store with normalization
+            # Step 2: Process each store with normalization
             report_data = []
             processed_count = 0
             
             for store_id in all_store_ids:
                 try:
-                    # Normalize store data
-                    normalized_store = self._normalize_store_data(
-                        store_id, timezones_data, menu_hours_data
-                    )
+                    # Fetch & normalize only for THIS store
+                    normalized_store = self._normalize_store_data(store_id)
                     
                     # Calculate metrics using minute-index algorithm
                     store_metrics = self._process_store_with_minute_index(
@@ -86,12 +78,12 @@ class ComprehensiveStoreReportService:
                     logger.error(f"Error processing store {store_id}: {e}")
                     continue
             
-            # Step 4: Save comprehensive report
+            # Step 3: Save comprehensive report
             report_file_path = self._save_comprehensive_report(
                 report_id, report_data, max_utc, all_store_ids
             )
             
-            # Step 5: Generate summary
+            # Step 4: Generate summary
             summary = self._generate_comprehensive_summary(report_data, all_store_ids)
             
             logger.info(f"Comprehensive report completed: {len(report_data)}/{len(all_store_ids)} stores processed")
@@ -156,75 +148,51 @@ class ComprehensiveStoreReportService:
         
         return all_stores
     
-    def _get_latest_timezones_data(self) -> Dict[str, str]:
+    def _get_timezone_for_store(self, store_id: str) -> Tuple[str, bool]:
+        """Return (tz_str, defaulted) for a store."""
+        query = text("""SELECT timezone_str FROM raw.timezones
+                    WHERE store_id = :sid LIMIT 1""")
+        row = self.db.execute(query, {"sid": store_id}).fetchone()
+        if row and row[0]:
+            return row[0], False
+        return "America/Chicago", True
+
+    def _get_menu_hours_for_store(self, store_id: str) -> Tuple[Dict[int, List[Tuple[str, str]]], bool]:
         """
-        Get latest timezone data for all stores
+        Return (by_day, defaulted). by_day: {int_dow: [(start,end), ...]}
         """
-        
-        query = text("SELECT store_id, timezone_str FROM raw.timezones")
-        result = self.db.execute(query).fetchall()
-        
-        timezones = {}
-        for row in result:
-            store_id = row[0]
-            timezone_str = row[1]
-            timezones[store_id] = timezone_str
-        
-        return timezones
-    
-    def _get_latest_menu_hours_data(self) -> Dict[str, List[Tuple[int, str, str]]]:
-        """
-        Get latest menu hours data for all stores
-        """
-        
         query = text("""
-            SELECT store_id, "dayOfWeek", start_time_local, end_time_local
+            SELECT "dayOfWeek", start_time_local, end_time_local
             FROM raw.menu_hours
-            ORDER BY store_id, "dayOfWeek", start_time_local
+            WHERE store_id = :sid
+            ORDER BY "dayOfWeek", start_time_local
         """)
-        
-        result = self.db.execute(query).fetchall()
-        
-        menu_hours = defaultdict(list)
-        for row in result:
-            store_id = row[0]
-            day_of_week = int(row[1])
-            start_time = row[2]
-            end_time = row[3]
-            menu_hours[store_id].append((day_of_week, start_time, end_time))
-        
-        return dict(menu_hours)
+        rows = self.db.execute(query, {"sid": store_id}).fetchall()
+
+        if not rows:
+            # 24/7 default for each day
+            return ({d: [("00:00:00", "23:59:59")] for d in range(7)}, True)
+
+        by_day = defaultdict(list)
+        for dow, start, end in rows:
+            by_day[int(dow)].append((start, end))
+        return (dict(by_day), False)
     
-    def _normalize_store_data(self, store_id: str, timezones_data: Dict[str, str], 
-                            menu_hours_data: Dict[str, List]) -> Dict[str, Any]:
+    def _normalize_store_data(self, store_id: str) -> Dict[str, Any]:
         """
         Normalize store data with defaults for missing information
         """
-        
-        # Normalize timezone
-        timezone_str = timezones_data.get(store_id, "America/Chicago")
-        
-        # Normalize business hours
-        business_hours = menu_hours_data.get(store_id, None)
-        if not business_hours:
-            # Default: 24/7 operation
-            business_hours = []
-            for day in range(7):  # 0=Monday to 6=Sunday
-                business_hours.append((day, "00:00:00", "23:59:59"))
-        
-        # Convert to the format expected by the algorithm
-        bh_by_day = defaultdict(list)
-        for day_of_week, start_time, end_time in business_hours:
-            bh_by_day[day_of_week].append((start_time, end_time))
-        
+        tz_str, tz_defaulted = self._get_timezone_for_store(store_id)
+        bh_by_day, bh_defaulted = self._get_menu_hours_for_store(store_id)
+
         return {
             "store_id": store_id,
-            "timezone_str": timezone_str,
-            "business_hours": dict(bh_by_day),
+            "timezone_str": tz_str,
+            "business_hours": bh_by_day,  # {dow: [(start, end), ...]}
             "normalized": {
-                "timezone_defaulted": store_id not in timezones_data,
-                "business_hours_defaulted": store_id not in menu_hours_data
-            }
+                "timezone_defaulted": tz_defaulted,
+                "business_hours_defaulted": bh_defaulted,
+            },
         }
     
     def _process_store_with_minute_index(self, store_data: Dict[str, Any], max_utc: datetime) -> Optional[Dict[str, Any]]:
@@ -320,9 +288,8 @@ class ComprehensiveStoreReportService:
         """Load and normalize polls for the store"""
         
         left_buf_minutes = 1440
-        left_dt = now_s_local - timedelta(minutes=10080 + left_buf_minutes)
-        left_dt_local_tz = store_tz.localize(left_dt)
-        left_dt_utc = left_dt_local_tz.astimezone(pytz.UTC)
+        left_dt_local = now_s_local - timedelta(minutes=10080 + left_buf_minutes)  # tz-aware
+        left_dt_utc = left_dt_local.astimezone(pytz.UTC)
         
         query = text("""
             SELECT timestamp_utc, status
@@ -412,8 +379,8 @@ class ComprehensiveStoreReportService:
                 windows = self._merge_time_windows(windows)
                 
                 for start_time, end_time in windows:
-                    dt_start = datetime.combine(current_date, start_time)
-                    dt_end = datetime.combine(current_date, end_time)
+                    dt_start = store_tz.localize(datetime.combine(current_date, start_time))
+                    dt_end = store_tz.localize(datetime.combine(current_date, end_time))
                     
                     idx_end = max(1, self._minute_index(dt_end, now_s_local))
                     idx_start = min(10081, self._minute_index(dt_start, now_s_local))
