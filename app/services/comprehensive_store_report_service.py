@@ -279,11 +279,19 @@ class ComprehensiveStoreReportService:
     def _floor_minute(self, dt: datetime) -> datetime:
         return dt.replace(second=0, microsecond=0)
     
+    def _ceil_minute(self, dt: datetime) -> datetime:
+        """Ceiling to next minute boundary (for inclusive BH end times)"""
+        if dt.second == 0 and dt.microsecond == 0:
+            return dt
+        return (dt + timedelta(minutes=1)).replace(second=0, microsecond=0)
+    
     def _minute_index(self, dt_local: datetime, now_s_local: datetime) -> int:
         """Map local datetime dt_local (floored to minute) to index k
         Both dt_local and now_s_local MUST be tz-aware in the SAME timezone"""
         delta_minutes = (now_s_local - dt_local).total_seconds() / 60.0
-        return max(1, math.ceil(delta_minutes))
+        # Fix off-by-one: use int(...) + 1 to avoid collapsing adjacent minute boundaries
+        # This ensures 1-hour BH (11:00-12:00) maps to indices (1,61) = 60 minutes
+        return max(1, int(delta_minutes) + 1)
     
     def _overlap_len(self, interval1: Tuple[int, int], interval2: Tuple[int, int]) -> int:
         a, b = interval1
@@ -405,9 +413,11 @@ class ComprehensiveStoreReportService:
                         a = self._localize_safe(store_tz, a_naive)
                         b = self._localize_safe(store_tz, b_naive)
                         
-                        k0 = self._minute_index(self._floor_minute(b), now_s_local)  # end exclusive
-                        k1 = self._minute_index(self._floor_minute(a), now_s_local)
-                        a_idx, b_idx = sorted((k0, k1))
+                        # Fix: Use _ceil_minute for end to include full last minute
+                        # BH of 00:00:00 → 23:59:59 becomes [00:00, 24:00) = 1440 minutes
+                        k_end   = self._minute_index(self._ceil_minute(b), now_s_local)   # end (exclusive)
+                        k_start = self._minute_index(self._floor_minute(a), now_s_local)  # start (inclusive)
+                        a_idx, b_idx = sorted((k_end, k_start))
                         if 1 <= a_idx < b_idx <= 10081:
                             bh_intervals.append((a_idx, b_idx))
             
