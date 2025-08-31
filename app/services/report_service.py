@@ -1,524 +1,194 @@
 #!/usr/bin/env python3
 """
-Report Service - Business Logic Layer
-Handles all business rules and operations for reports
+Business logic for store monitoring reports.
+- Idempotent: one active report at a time.
+- Proper error handling via exceptions.
+- Clear separation between domain logic and persistence.
 """
 
-from sqlalchemy.orm import Session
-from time import time_ns
-from secrets import randbelow
-import logging
-import json
 import os
-from datetime import datetime
+import logging
 from typing import Optional, Dict, Any
-from .minute_index_report_service import MinuteIndexReportService
-from app.tasks.report_tasks import generate_report
+from uuid import uuid4
 
-from app.models.report import Report
-from app.database.crud import ReportCRUD
-from app.core.config import settings
+from sqlalchemy.orm import Session
+
+from app.database.crud import ReportCRUD, RepositoryError
+from app.schemas.report import ReportStatus, ReportResponse, ReportStatusResponse
+from app.tasks.report_tasks import generate_report
+from app.utils.url_resolver import UrlResolver
 
 logger = logging.getLogger(__name__)
 
 
-class ReportService:
-    """
-    Service layer for report business logic
-    Contains all business rules and operations
-    """
-    
-    def __init__(self, db: Session):
-        self.db = db
-        self.crud = ReportCRUD
-        self.minute_index_service = MinuteIndexReportService(db)
-    
-    def generate_report_id(self) -> str:
-        """Generate a unique report ID"""
-        return f"{time_ns()}-{randbelow(1_000_000):06d}"
-    
-    def can_create_new_report(self) -> Dict[str, Any]:
-        """
-        Business rule: Check if a new report can be created
-        Returns validation result with details
-        """
-        try:
-            pending_report = self.crud.get_latest_pending_report(self.db)
-            
-            if pending_report:
-                return {
-                    "can_create": False,
-                    "reason": "PENDING_EXISTS",
-                    "existing_report": {
-                        "report_id": pending_report.report_id,
-                        "status": pending_report.status,
-                        "created_at": pending_report.created_at
-                    },
-                    "message": f"Cannot create new report. Existing report {pending_report.report_id} is still {pending_report.status}."
-                }
-            
-            return {
-                "can_create": True,
-                "reason": "NO_PENDING",
-                "existing_report": None,
-                "message": "Ready to create new report"
-            }
-            
-        except Exception as e:
-            logger.error(f"Error checking report creation eligibility: {e}")
-            return {
-                "can_create": False,
-                "reason": "ERROR",
-                "existing_report": None,
-                "message": f"Error validating report creation: {str(e)}"
-            }
-    
-    def create_new_report(self) -> Dict[str, Any]:
-        """
-        Business logic: Create a new report if none are pending
-        Always uses full batch processing (50000 stores)
-        """
-        try:
-            # Check if we can create a new report
-            validation = self.can_create_new_report()
-            if not validation["can_create"]:
-                return {
-                    "success": False,
-                    "error_code": "CREATION_BLOCKED",
-                    "data": {"message": validation.get("message", "Cannot create report")}
-                }
-            
-            # Generate unique report ID
-            report_id = self.generate_report_id()
-            
-            # Create database record
-            db_report = self.crud.create_report(self.db, report_id)
-            if not db_report:
-                return {
-                    "success": False,
-                    "error_code": "DB_CREATE_FAILED",
-                    "data": {"message": "Failed to create database record"}
-                }
-            
-            # Update JSON tracking
-            self._update_current_report_json(report_id, "PENDING")
-            
-            # Trigger async processing - ALWAYS use full batch (50000 stores)
-            max_stores = 50000  # Process all stores
-            logger.info(f"Triggering report {report_id} with max_stores={max_stores} (full batch)")
-            generate_report.delay(report_id, max_stores)
-            
-            return {
-                "success": True,
-                "error_code": None,
-                "data": {
-                    "report_id": report_id,
-                    "status": "RUNNING",
-                    "message": f"Report generation started for {max_stores} stores"
-                }
-            }
-            
-        except Exception as e:
-            logger.error(f"Error creating new report: {e}")
-            return {
-                "success": False,
-                "error_code": "CREATE_FAILED",
-                "data": {"message": str(e)}
-            }
-    
-    def get_report_by_id(self, report_id: str) -> Dict[str, Any]:
-        """
-        Business operation: Get report details
-        """
-        try:
-            logger.info(f"Fetching report: {report_id}")
-            
-            db_report = self.crud.get_report_by_id(self.db, report_id)
-            
-            if not db_report:
-                return {
-                    "success": False,
-                    "error_code": "NOT_FOUND",
-                    "data": {"message": f"Report {report_id} not found"}
-                }
-            
-            logger.info(f"Report {report_id} status: {db_report.status}")
-            
-            return {
-                "success": True,
-                "error_code": None,
-                "data": {
-                    "report": db_report,
-                    "report_id": report_id,
-                    "status": db_report.status,
-                    "url": db_report.url,
-                    "created_at": db_report.created_at,
-                    "updated_at": db_report.updated_at
-                }
-            }
-            
-        except Exception as e:
-            logger.error(f"Error fetching report {report_id}: {e}")
-            return {
-                "success": False,
-                "error_code": "FETCH_FAILED",
-                "data": {"message": str(e)}
-            }
-    
-    def get_pending_report_status(self) -> Dict[str, Any]:
-        """
-        Business operation: Check for pending reports
-        """
-        try:
-            pending_report = self.crud.get_latest_pending_report(self.db)
-            
-            if pending_report:
-                return {
-                    "success": True,
-                    "error_code": None,
-                    "data": {
-                        "has_pending": True,
-                        "report_id": pending_report.report_id,
-                        "status": pending_report.status,
-                        "created_at": pending_report.created_at,
-                        "message": f"Report is currently {pending_report.status} - cannot create new one"
-                    }
-                }
-            else:
-                return {
-                    "success": True,
-                    "error_code": None,
-                    "data": {
-                        "has_pending": False,
-                        "report_id": None,
-                        "status": None,
-                        "created_at": None,
-                        "message": "No PENDING/RUNNING report - can create new report"
-                    }
-                }
-                
-        except Exception as e:
-            logger.error(f"Error checking pending status: {e}")
-            return {
-                "success": False,
-                "error_code": "STATUS_CHECK_FAILED",
-                "data": {"message": str(e)}
-            }
-    
-    def get_current_report_from_json(self) -> Dict[str, Any]:
-        """
-        Business operation: Get current active report from JSON
-        """
-        try:
-            data = self._load_current_report_json()
-            
-            return {
-                "success": True,
-                "error_code": None,
-                "data": {
-                    "current_report_id": data.get("current_report_id"),
-                    "status": data.get("status"),
-                    "created_at": data.get("created_at"),
-                    "last_updated": data.get("last_updated")
-                }
-            }
-            
-        except Exception as e:
-            logger.error(f"Error getting current report: {e}")
-            return {
-                "success": False,
-                "error_code": "JSON_READ_FAILED",
-                "data": {"message": str(e)}
-            }
-    
-    def update_report_status(self, report_id: str, new_status: str) -> Dict[str, Any]:
-        """
-        Business operation: Update report status
-        """
-        try:
-            # Business rule: Validate status transition
-            valid_statuses = ["PENDING", "RUNNING", "COMPLETE", "FAILED"]
-            if new_status not in valid_statuses:
-                return {
-                    "success": False,
-                    "error_code": "INVALID_STATUS",
-                    "data": {"message": f"Invalid status: {new_status}. Must be one of {valid_statuses}"}
-                }
-            
-            db_report = self.crud.update_report_status(self.db, report_id, new_status)
-            
-            if not db_report:
-                return {
-                    "success": False,
-                    "error_code": "NOT_FOUND",
-                    "data": {"message": f"Report {report_id} not found"}
-                }
-            
-            # Update JSON if this is the current report
-            if new_status in ["COMPLETE", "FAILED"]:
-                self._clear_current_report_json()
-            
-            return {
-                "success": True,
-                "error_code": None,
-                "data": {
-                    "report": db_report,
-                    "report_id": report_id,
-                    "status": new_status,
-                    "updated_at": db_report.updated_at
-                }
-            }
-            
-        except Exception as e:
-            logger.error(f"Error updating report status: {e}")
-            return {
-                "success": False,
-                "error_code": "UPDATE_FAILED",
-                "data": {"message": str(e)}
-            }
-    
-    def set_report_status_and_url(self, report_id: str, status: str, url: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Business operation: Update report status and URL (for compute workers)
-        """
-        try:
-            # Business rule: Validate status transition
-            valid_statuses = ["PENDING", "RUNNING", "COMPLETE", "FAILED"]
-            if status not in valid_statuses:
-                return {
-                    "success": False,
-                    "error_code": "INVALID_STATUS",
-                    "data": {"message": f"Invalid status: {status}. Must be one of {valid_statuses}"}
-                }
-            
-            # Business rule: URL should only be set for COMPLETE status
-            if status == "COMPLETE" and not url:
-                logger.warning(f"Report {report_id} marked COMPLETE but no URL provided")
-            elif status != "COMPLETE" and url:
-                logger.warning(f"Report {report_id} status {status} has URL - URLs typically only for COMPLETE")
-            
-            db_report = self.crud.set_report_status_and_url(self.db, report_id, status, url)
-            
-            if not db_report:
-                return {
-                    "success": False,
-                    "error_code": "NOT_FOUND",
-                    "data": {"message": f"Report {report_id} not found"}
-                }
-            
-            # Business rule: Clear JSON tracking when job completes or fails
-            if status in ["COMPLETE", "FAILED"]:
-                self._clear_current_report_json()
-            
-            logger.info(f"Business logic: Report {report_id} status updated to {status} with URL: {url}")
-            
-            return {
-                "success": True,
-                "error_code": None,
-                "data": {
-                    "report": db_report,
-                    "report_id": report_id,
-                    "status": status,
-                    "url": url,
-                    "updated_at": db_report.updated_at
-                }
-            }
-            
-        except Exception as e:
-            logger.error(f"Error setting report status and URL: {e}")
-            return {
-                "success": False,
-                "error_code": "UPDATE_FAILED",
-                "data": {"message": str(e)}
-            }
-    
-    def get_report_with_url_logic(self, report_id: str) -> Dict[str, Any]:
-        """
-        Business operation: Get report with URL visibility rules
-        """
-        try:
-            logger.info(f"Fetching report with URL logic: {report_id}")
-            
-            db_report = self.crud.get_report_by_id(self.db, report_id)
-            
-            if not db_report:
-                return {
-                    "success": False,
-                    "error_code": "NOT_FOUND",
-                    "data": {"message": f"Report {report_id} not found"}
-                }
-            
-            # Business rule: Only expose URL when status is COMPLETE
-            exposed_url = None
-            display_status = db_report.status
-            
-            if db_report.status in ("PENDING", "RUNNING"):
-                display_status = "RUNNING"
-                exposed_url = None
-            elif db_report.status == "FAILED":
-                display_status = "FAILED"
-                exposed_url = None
-            elif db_report.status == "COMPLETE":
-                display_status = "COMPLETED"
-                # Convert file:// URL to /files/ format
-                if db_report.url and db_report.url.startswith("file://"):
-                    file_path = db_report.url.replace("file://", "")
-                    if "reports/" in file_path:
-                        filename = file_path.split("reports/")[-1]
-                        # Convert to CSV format as required
-                        if filename.endswith(".json"):
-                            filename = filename.replace(".json", ".csv")
-                        exposed_url = f"/files/reports/{filename}"
-                    else:
-                        exposed_url = db_report.url
-                else:
-                    exposed_url = db_report.url
-            
-            logger.info(f"Report {report_id} business logic: status={display_status}, URL exposed={exposed_url is not None}")
-            
-            return {
-                "success": True,
-                "error_code": None,
-                "data": {
-                    "report": db_report,
-                    "report_id": report_id,
-                    "status": display_status,
-                    "url": exposed_url,
-                    "raw_status": db_report.status,
-                    "created_at": db_report.created_at,
-                    "updated_at": db_report.updated_at
-                }
-            }
-            
-        except Exception as e:
-            logger.error(f"Error fetching report with URL logic {report_id}: {e}")
-            return {
-                "success": False,
-                "error_code": "FETCH_FAILED",
-                "data": {"message": str(e)}
-            }
-    
-    def generate_actual_store_report(self, report_id: str, comprehensive: bool = True) -> Dict[str, Any]:
-        """
-        Generate the actual store monitoring report
-        
-        Args:
-            report_id: Unique report identifier
-            comprehensive: If True, process ALL stores with data normalization
-        """
-        try:
-            logger.info(f"Starting actual report generation for {report_id} - ALWAYS FULL BATCH")
-            
-            # ALWAYS use minute-index service for ALL stores (comprehensive processing)
-            result = self.minute_index_service.generate_store_report(report_id, max_stores=50000)
-            
-            if result["success"]:
-                total_stores = result["total_stores"]
-                logger.info(f"Report {report_id} generated: {total_stores} stores (FULL BATCH)")
-                
-                # The file path is the URL we want to store
-                file_url = f"file://{result['file_path']}"
-                
-                # Update the database with COMPLETE status and URL
-                self.set_report_status_and_url(report_id, "COMPLETE", file_url)
-                
-                return {
-                    "success": True,
-                    "report_id": report_id,
-                    "url": file_url,
-                    "total_stores": total_stores,
-                    "successfully_processed": total_stores,
-                    "summary": result["summary"],
-                    "algorithm": result.get("algorithm", "Minute-Index Algorithm")
-                }
-            else:
-                logger.error(f"Report generation failed for {report_id}: {result.get('error')}")
-                
-                # Mark as failed
-                self.set_report_status_and_url(report_id, "FAILED")
-                
-                return {
-                    "success": False,
-                    "report_id": report_id,
-                    "error": result.get("error", "Unknown error")
-                }
-                
-        except Exception as e:
-            logger.error(f"Error in actual report generation for {report_id}: {e}")
-            
-            # Mark as failed
-            try:
-                self.set_report_status_and_url(report_id, "FAILED")
-            except:
-                pass  # Don't fail on cleanup
-            
-            return {
-                "success": False,
-                "report_id": report_id,
-                "error": str(e)
-            }
+class ReportServiceError(Exception):
+    """Raised on service layer business logic errors"""
+    pass
 
-    # Private helper methods for JSON operations
-    def _load_current_report_json(self) -> Dict[str, Any]:
-        """Load current report from JSON file"""
+
+class ReportService:
+    """Business logic for store monitoring reports"""
+
+    @staticmethod
+    def trigger_report(db: Session) -> ReportResponse:
+        """
+        Start a new report generation if no active report exists.
+        Returns the new report ID or the existing active report.
+        Idempotent: only one active report at a time.
+        """
         try:
-            if os.path.exists(settings.REPORTS_JSON_FILE):
-                with open(settings.REPORTS_JSON_FILE, 'r') as f:
-                    return json.load(f)
-            else:
-                # Return default structure
-                default_data = {
-                    "current_report_id": None,
-                    "status": None,
-                    "created_at": None,
-                    "last_updated": datetime.now().isoformat()
-                }
-                self._save_current_report_json(default_data)
-                return default_data
+            # Check for existing active report
+            active_report = ReportCRUD.get_latest_active_report(db)
+            if active_report:
+                logger.info(
+                    "Active report already exists",
+                    extra={"report_id": active_report.report_id, "status": active_report.status},
+                )
+                return ReportResponse(
+                    report_id=active_report.report_id,
+                    status=ReportStatus(active_report.status),
+                    message="Report generation already in progress",
+                )
+
+            # Generate new report ID and create pending record
+            report_id = str(uuid4())
+            new_report = ReportCRUD.create_report(db, report_id, ReportStatus.PENDING)
+
+            # Start background task
+            generate_report.delay(report_id, 50000)
+
+            logger.info("New report triggered", extra={"report_id": report_id})
+            return ReportResponse(
+                report_id=report_id,
+                status=ReportStatus.PENDING,
+                message="Report generation started",
+            )
+
+        except RepositoryError as e:
+            logger.exception("Repository error during report trigger")
+            raise ReportServiceError(f"Database error: {e}") from e
         except Exception as e:
-            logger.error(f"Error loading reports JSON: {e}")
-            return {
-                "current_report_id": None,
-                "status": None,
-                "created_at": None,
-                "last_updated": datetime.now().isoformat()
-            }
-    
-    def _save_current_report_json(self, data: Dict[str, Any]) -> None:
-        """Save current report data to JSON file"""
+            logger.exception("Unexpected error during report trigger")
+            raise ReportServiceError(f"Failed to trigger report: {e}") from e
+
+    @staticmethod
+    def get_report_status(db: Session, report_id: str) -> ReportStatusResponse:
+        """
+        Get the status of a specific report.
+        Transform file:// URLs to public URLs for external consumption.
+        """
         try:
-            with open(settings.REPORTS_JSON_FILE, 'w') as f:
-                json.dump(data, f, indent=2)
-            logger.info(f"Current report JSON updated: {settings.REPORTS_JSON_FILE}")
+            report = ReportCRUD.get_report_by_id(db, report_id)
+            if not report:
+                logger.warning("Report not found", extra={"report_id": report_id})
+                raise ReportServiceError(f"Report {report_id} not found")
+
+            status = ReportStatus(report.status)
+            public_url = None
+
+            # Transform file URLs to public URLs for completed reports
+            if status == ReportStatus.COMPLETED and report.url:
+                public_url = UrlResolver.to_public(report.url)
+
+            logger.debug(
+                "Report status retrieved",
+                extra={
+                    "report_id": report_id,
+                    "status": status.value,
+                    "has_url": public_url is not None,
+                },
+            )
+
+            return ReportStatusResponse(
+                report_id=report_id,
+                status=status,
+                url=public_url,
+            )
+
+        except RepositoryError as e:
+            logger.exception("Repository error during status check")
+            raise ReportServiceError(f"Database error: {e}") from e
+        except ValueError as e:
+            # Invalid enum value from database
+            logger.error("Invalid status in database", extra={"report_id": report_id, "status": report.status})
+            raise ReportServiceError(f"Invalid report status: {e}") from e
         except Exception as e:
-            logger.error(f"Error saving reports JSON: {e}")
-    
-    def _update_current_report_json(self, report_id: str, status: str = "PENDING") -> None:
-        """Update JSON file with current active report"""
+            logger.exception("Unexpected error during status check")
+            raise ReportServiceError(f"Failed to get report status: {e}") from e
+
+    @staticmethod
+    def mark_report_running(db: Session, report_id: str) -> None:
+        """Mark a report as RUNNING (called by background task)"""
         try:
-            current_report_data = {
-                "current_report_id": report_id,
-                "status": status,
-                "created_at": datetime.now().isoformat(),
-                "last_updated": datetime.now().isoformat()
-            }
-            
-            self._save_current_report_json(current_report_data)
-            logger.info(f"Current report updated in JSON: {report_id}")
-            
-        except Exception as e:
-            logger.error(f"Error updating current report in JSON: {e}")
-    
-    def _clear_current_report_json(self) -> None:
-        """Clear current report from JSON (when completed/failed)"""
+            ReportCRUD.set_report_status_and_url(db, report_id, ReportStatus.RUNNING)
+            logger.info("Report marked as running", extra={"report_id": report_id})
+        except RepositoryError as e:
+            logger.exception("Repository error marking report as running")
+            raise ReportServiceError(f"Database error: {e}") from e
+
+    @staticmethod
+    def mark_report_completed(db: Session, report_id: str, file_url: str) -> None:
+        """Mark a report as COMPLETED with file URL (called by background task)"""
         try:
-            empty_data = {
-                "current_report_id": None,
-                "status": None,
-                "created_at": None,
-                "last_updated": datetime.now().isoformat()
-            }
-            self._save_current_report_json(empty_data)
-            logger.info("Current report cleared from JSON")
+            ReportCRUD.set_report_status_and_url(db, report_id, ReportStatus.COMPLETED, file_url)
+            logger.info(
+                "Report marked as completed",
+                extra={"report_id": report_id, "file_url": file_url},
+            )
+        except RepositoryError as e:
+            logger.exception("Repository error marking report as completed")
+            raise ReportServiceError(f"Database error: {e}") from e
+
+    @staticmethod
+    def mark_report_failed(db: Session, report_id: str, error_msg: Optional[str] = None) -> None:
+        """Mark a report as FAILED (called by background task)"""
+        try:
+            ReportCRUD.set_report_status_and_url(db, report_id, ReportStatus.FAILED)
+            logger.error(
+                "Report marked as failed",
+                extra={"report_id": report_id, "error": error_msg},
+            )
+        except RepositoryError as e:
+            logger.exception("Repository error marking report as failed")
+            raise ReportServiceError(f"Database error: {e}") from e
+
+    @staticmethod
+    def get_report_file_path(report_id: str, format_type: str = "csv") -> str:
+        """Generate file path for report output"""
+        reports_dir = os.path.join(os.getcwd(), "reports")
+        os.makedirs(reports_dir, exist_ok=True)
+        return os.path.join(reports_dir, f"{report_id}.{format_type}")
+
+    @staticmethod
+    def cleanup_old_reports(db: Session, keep_count: int = 10) -> Dict[str, Any]:
+        """Clean up old report files and database records (admin utility)"""
+        try:
+            # Get all reports ordered by creation date (newest first)
+            all_reports = ReportCRUD.get_all_reports(db, skip=0, limit=1000)
+            all_reports.sort(key=lambda r: r.created_at, reverse=True)
+
+            if len(all_reports) <= keep_count:
+                return {"deleted_count": 0, "message": "No cleanup needed"}
+
+            # Delete old reports
+            deleted_count = 0
+            for report in all_reports[keep_count:]:
+                # Delete file if it exists
+                if report.url and report.url.startswith("file://"):
+                    file_path = report.url.replace("file://", "")
+                    try:
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
+                    except OSError:
+                        logger.warning(f"Could not delete file: {file_path}")
+
+                # Delete database record
+                if ReportCRUD.delete_report(db, report.report_id):
+                    deleted_count += 1
+
+            logger.info(f"Cleaned up {deleted_count} old reports")
+            return {"deleted_count": deleted_count, "message": f"Cleaned up {deleted_count} old reports"}
+
         except Exception as e:
-            logger.error(f"Error clearing current report from JSON: {e}")
+            logger.exception("Error during report cleanup")
+            raise ReportServiceError(f"Cleanup failed: {e}") from e

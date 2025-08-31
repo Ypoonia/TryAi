@@ -1,130 +1,137 @@
 #!/usr/bin/env python3
 """
-CRUD operations for Store Monitoring System
+Repository (CRUD) operations for Report model with consistent behavior.
+- Returns domain objects on success.
+- Returns None only for "not found" lookups.
+- Raises on DB failures (so upper layers aren't forced to guess).
 """
+
+from typing import Optional, List
+import logging
 
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, text
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.models.report import Report
-from typing import Optional, Dict, Any, List
-import logging
+from app.schemas.report import ReportStatus
 
 logger = logging.getLogger(__name__)
 
 
+class RepositoryError(RuntimeError):
+    pass
+
+
 class ReportCRUD:
-    """CRUD operations for Report model"""
-    
+    """Repository for Report model"""
+
     @staticmethod
-    def create_report(db: Session, report_id: str, status: str = "PENDING") -> Report:
-        """Create a new report"""
+    def create_report(db: Session, report_id: str, status: ReportStatus = ReportStatus.PENDING) -> Report:
         try:
-            db_report = Report(
-                report_id=report_id,
-                status=status
-            )
+            db_report = Report(report_id=report_id, status=status.value)
             db.add(db_report)
             db.commit()
             db.refresh(db_report)
-            logger.info(f"Report {report_id} created successfully")
+            logger.info("Report created", extra={"report_id": report_id, "status": status.value})
             return db_report
-        except Exception as e:
+        except SQLAlchemyError as e:
             db.rollback()
-            logger.error(f"Error creating report {report_id}: {e}")
-            raise
-    
+            logger.exception("DB error creating report")
+            raise RepositoryError(str(e)) from e
+
     @staticmethod
     def get_report_by_id(db: Session, report_id: str) -> Optional[Report]:
-        """Get report by ID"""
         try:
             return db.query(Report).filter(Report.report_id == report_id).first()
-        except Exception as e:
-            logger.error(f"Error getting report {report_id}: {e}")
-            return None
-    
+        except SQLAlchemyError as e:
+            logger.exception("DB error fetching report by id")
+            raise RepositoryError(str(e)) from e
+
     @staticmethod
-    def get_latest_pending_report(db: Session) -> Optional[Report]:
-        """Get the most recent PENDING or RUNNING report"""
+    def get_latest_active_report(db: Session) -> Optional[Report]:
+        """
+        Return most recent report with status in (PENDING, RUNNING).
+        """
         try:
-            return db.query(Report).filter(
-                Report.status.in_(["PENDING", "RUNNING"])
-            ).order_by(desc(Report.created_at)).first()
-        except Exception as e:
-            logger.error(f"Error getting latest pending/running report: {e}")
-            return None
-    
+            return (
+                db.query(Report)
+                .filter(Report.status.in_([ReportStatus.PENDING.value, ReportStatus.RUNNING.value]))
+                .order_by(desc(Report.created_at))
+                .first()
+            )
+        except SQLAlchemyError as e:
+            logger.exception("DB error fetching latest active report")
+            raise RepositoryError(str(e)) from e
+
     @staticmethod
-    def update_report_status(db: Session, report_id: str, new_status: str) -> Optional[Report]:
-        """Update report status"""
-        try:
-            db_report = db.query(Report).filter(Report.report_id == report_id).first()
-            if db_report:
-                db_report.status = new_status
-                db.commit()
-                db.refresh(db_report)
-                logger.info(f"Report {report_id} status updated to {new_status}")
-                return db_report
-            return None
-        except Exception as e:
-            db.rollback()
-            logger.error(f"Error updating report {report_id} status: {e}")
-            return None
-    
-    @staticmethod
-    def set_report_status_and_url(db: Session, report_id: str, status: str, url: Optional[str] = None) -> Optional[Report]:
-        """Update report status and URL (business logic helper)"""
+    def set_report_status_and_url(
+        db: Session, report_id: str, status: ReportStatus, url: Optional[str] = None
+    ) -> Report:
         try:
             db_report = db.query(Report).filter(Report.report_id == report_id).first()
-            if db_report:
-                db_report.status = status
-                if url is not None:
-                    db_report.url = url
-                db.commit()
-                db.refresh(db_report)
-                logger.info(f"Report {report_id} updated: status={status}, url={url}")
-                return db_report
-            return None
-        except Exception as e:
+            if not db_report:
+                raise RepositoryError(f"Report {report_id} not found")
+            db_report.status = status.value
+            if url is not None:
+                db_report.url = url
+            db.commit()
+            db.refresh(db_report)
+            logger.info(
+                "Report updated",
+                extra={"report_id": report_id, "status": status.value, "has_url": url is not None},
+            )
+            return db_report
+        except SQLAlchemyError as e:
             db.rollback()
-            logger.error(f"Error updating report {report_id} status and URL: {e}")
-            return None
-    
+            logger.exception("DB error updating report status/url")
+            raise RepositoryError(str(e)) from e
+
     @staticmethod
     def get_all_reports(db: Session, skip: int = 0, limit: int = 100) -> List[Report]:
-        """Get all reports with pagination"""
         try:
             return db.query(Report).offset(skip).limit(limit).all()
-        except Exception as e:
-            logger.error(f"Error getting all reports: {e}")
-            return []
-    
+        except SQLAlchemyError as e:
+            logger.exception("DB error fetching all reports")
+            raise RepositoryError(str(e)) from e
+
     @staticmethod
     def delete_report(db: Session, report_id: str) -> bool:
-        """Delete a report"""
         try:
             db_report = db.query(Report).filter(Report.report_id == report_id).first()
-            if db_report:
-                db.delete(db_report)
-                db.commit()
-                logger.info(f"Report {report_id} deleted successfully")
-                return True
-            return False
-        except Exception as e:
+            if not db_report:
+                return False
+            db.delete(db_report)
+            db.commit()
+            logger.info("Report deleted", extra={"report_id": report_id})
+            return True
+        except SQLAlchemyError as e:
             db.rollback()
-            logger.error(f"Error deleting report {report_id}: {e}")
-            return False
+            logger.exception("DB error deleting report")
+            raise RepositoryError(str(e)) from e
+
+    # Legacy method names for compatibility with existing code
+    @staticmethod
+    def get_latest_pending_report(db: Session) -> Optional[Report]:
+        """Legacy alias for get_latest_active_report"""
+        return ReportCRUD.get_latest_active_report(db)
+
+    @staticmethod
+    def update_report_status(db: Session, report_id: str, new_status: str) -> Optional[Report]:
+        """Legacy method - convert string status to enum"""
+        try:
+            status_enum = ReportStatus(new_status)
+            return ReportCRUD.set_report_status_and_url(db, report_id, status_enum)
+        except ValueError:
+            logger.error(f"Invalid status: {new_status}")
+            raise RepositoryError(f"Invalid status: {new_status}")
 
 
-def check_database_health(db: Session) -> Dict[str, Any]:
-    """Check database connectivity and health"""
+def check_database_health(db: Session):
+    """Simple DB connectivity check"""
     try:
-        # Try to execute a simple query
-        result = db.execute(text("SELECT 1")).scalar()
-        
-        if result == 1:
-            return {"ok": True, "database": "connected"}
-        else:
-            return {"ok": False, "database": "query_failed"}
-    except Exception as e:
-        logger.error(f"Database health check failed: {e}")
+        ok = db.execute(text("SELECT 1")).scalar() == 1
+        return {"ok": ok, "database": "connected" if ok else "query_failed"}
+    except SQLAlchemyError as e:
+        logger.exception("DB health check failed")
         return {"ok": False, "database": str(e)}
