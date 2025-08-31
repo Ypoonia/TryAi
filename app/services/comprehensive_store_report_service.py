@@ -114,12 +114,11 @@ class ComprehensiveStoreReportService:
         query = text("SELECT MAX(timestamp_utc) FROM raw.store_status")
         result = self.db.execute(query).fetchone()
         
-        max_timestamp_str = result[0]
-        if isinstance(max_timestamp_str, str):
-            max_timestamp_str = max_timestamp_str.replace(' UTC', '')
-            max_utc = datetime.fromisoformat(max_timestamp_str)
-        else:
-            max_utc = result[0]
+        max_utc = result[0]
+        if isinstance(max_utc, str):
+            max_utc = datetime.fromisoformat(max_utc.replace(' UTC', ''))
+        if max_utc.tzinfo is None:
+            max_utc = pytz.UTC.localize(max_utc)
         
         return max_utc
     
@@ -222,6 +221,10 @@ class ComprehensiveStoreReportService:
         # Load & normalize polls (using local timezone)
         polls_normalized = self._load_and_normalize_polls(store_id, store_tz, now_s_local)
         
+        # SKIP if store has no polls (per business rule)
+        if not polls_normalized:
+            return None
+        
         # Build BH intervals (using local timezone)
         bh_intervals = self._build_bh_intervals_from_data(business_hours, store_tz, now_s_local)
         
@@ -244,6 +247,12 @@ class ComprehensiveStoreReportService:
         D_H = B_H - U_H
         D_D = B_D - U_D
         D_W = B_W - U_W
+        
+        # Assert invariants (optional but recommended)
+        eps = 1e-9
+        assert abs((U_H + (B_H - U_H)) - B_H) < eps, f"Hour invariant failed: U_H={U_H}, B_H={B_H}"
+        assert abs((U_D + (B_D - U_D)) - B_D) < eps, f"Day invariant failed: U_D={U_D}, B_D={B_D}"
+        assert abs((U_W + (B_W - U_W)) - B_W) < eps, f"Week invariant failed: U_W={U_W}, B_W={B_W}"
         
         return {
             "store_id": store_id,
@@ -274,7 +283,7 @@ class ComprehensiveStoreReportService:
         """Map local datetime dt_local (floored to minute) to index k
         Both dt_local and now_s_local MUST be tz-aware in the SAME timezone"""
         delta_minutes = (now_s_local - dt_local).total_seconds() / 60.0
-        return max(1, int(delta_minutes + 1))
+        return max(1, math.ceil(delta_minutes))
     
     def _overlap_len(self, interval1: Tuple[int, int], interval2: Tuple[int, int]) -> int:
         a, b = interval1
@@ -283,6 +292,15 @@ class ComprehensiveStoreReportService:
     
     def _clamp(self, value: float, lo: float, hi: float) -> float:
         return max(lo, min(hi, value))
+    
+    def _localize_safe(self, tz: pytz.BaseTzInfo, dt: datetime) -> datetime:
+        """DST-safe localization for business hours"""
+        try:
+            return tz.localize(dt, is_dst=None)  # raise on ambiguous / nonexistent
+        except pytz.AmbiguousTimeError:
+            return tz.localize(dt, is_dst=True)   # choose one (or parametrize)
+        except pytz.NonExistentTimeError:
+            return tz.localize(dt + timedelta(hours=1), is_dst=True)  # nudge forward
     
     def _load_and_normalize_polls(self, store_id: str, store_tz: Optional[pytz.BaseTzInfo], now_s_local: datetime) -> List[Tuple[int, str]]:
         """Load and normalize polls for the store"""
@@ -335,11 +353,10 @@ class ComprehensiveStoreReportService:
         
         polls_normalized = []
         for minute_index, (_, status) in minute_polls.items():
-            if minute_index <= 10080:
-                polls_normalized.append((minute_index, status))
+            polls_normalized.append((minute_index, status))
         
-        # Sort descending by index: larger index = older timestamp (chronological order)
-        polls_normalized.sort(key=lambda x: x[0], reverse=True)
+        # Keep ASC order here for seed selection
+        polls_normalized.sort(key=lambda x: x[0])  # ascending by index
         return polls_normalized
     
     def _map_to_active_inactive(self, status: str) -> Optional[str]:
@@ -356,41 +373,45 @@ class ComprehensiveStoreReportService:
         """Build business hours intervals from normalized data"""
         
         bh_intervals = []
-        start_date = (now_s_local - timedelta(days=8)).date()
-        end_date = (now_s_local + timedelta(days=1)).date()
         
-        current_date = start_date
-        while current_date <= end_date:
-            weekday = current_date.weekday()
+        # Iterate local midnights, not .date() alone
+        day0 = now_s_local.replace(hour=0, minute=0, second=0, microsecond=0)
+        cursor = (day0 - timedelta(days=8))
+        endcap = (day0 + timedelta(days=1))
+        
+        while cursor <= endcap:
+            dow = cursor.weekday()
             
-            if weekday in business_hours:
-                windows = []
-                for start_time_str, end_time_str in business_hours[weekday]:
-                    start_time = self._parse_time_str(start_time_str)
-                    end_time = self._parse_time_str(end_time_str)
-                    
-                    if end_time <= start_time:
-                        from datetime import time
-                        windows.append((start_time, time(23, 59, 59)))
-                        windows.append((time(0, 0, 0), end_time))
+            if dow in business_hours:
+                for start_str, end_str in business_hours[dow]:
+                    s = self._parse_time_str(start_str)
+                    e = self._parse_time_str(end_str)
+
+                    # Create naive datetimes first, then localize safely
+                    start_dt_naive = cursor.replace(hour=s.hour, minute=s.minute, second=s.second, microsecond=0, tzinfo=None)
+                    end_dt_naive = cursor.replace(hour=e.hour, minute=e.minute, second=e.second, microsecond=0, tzinfo=None)
+
+                    segs = []
+                    if end_dt_naive <= start_dt_naive:  # overnight
+                        midnight_next_naive = cursor.replace(tzinfo=None) + timedelta(days=1)
+                        segs = [(start_dt_naive, midnight_next_naive),  # [start, next 00:00)
+                                (midnight_next_naive.replace(hour=0, minute=0, second=0, microsecond=0), 
+                                 end_dt_naive + timedelta(days=1))]
                     else:
-                        windows.append((start_time, end_time))
-                
-                windows = self._merge_time_windows(windows)
-                
-                for start_time, end_time in windows:
-                    dt_start = store_tz.localize(datetime.combine(current_date, start_time))
-                    dt_end = store_tz.localize(datetime.combine(current_date, end_time))
-                    
-                    idx_end = max(1, self._minute_index(dt_end, now_s_local))
-                    idx_start = min(10081, self._minute_index(dt_start, now_s_local))
-                    
-                    # Since minute indices count backwards, idx_end < idx_start
-                    # Store as (start, end) where start < end in index space
-                    if idx_end < idx_start:  # Valid interval
-                        bh_intervals.append((idx_end, idx_start))  # (smaller_idx, larger_idx)
+                        segs = [(start_dt_naive, end_dt_naive)]  # [start, end)
+
+                    for a_naive, b_naive in segs:
+                        # Use DST-safe localization
+                        a = self._localize_safe(store_tz, a_naive)
+                        b = self._localize_safe(store_tz, b_naive)
+                        
+                        k0 = self._minute_index(self._floor_minute(b), now_s_local)  # end exclusive
+                        k1 = self._minute_index(self._floor_minute(a), now_s_local)
+                        a_idx, b_idx = sorted((k0, k1))
+                        if 1 <= a_idx < b_idx <= 10081:
+                            bh_intervals.append((a_idx, b_idx))
             
-            current_date += timedelta(days=1)
+            cursor += timedelta(days=1)
         
         return self._merge_sorted_intervals(bh_intervals)
     
@@ -438,10 +459,19 @@ class ComprehensiveStoreReportService:
         # seed = last poll at or BEFORE band start (k >= 10080)
         start_k = W[1]-1  # 10080
         seed_status = 'inactive'  # fallback
-        for k, s in sorted(polls_idx, key=lambda x: x[0]):  # ascending k
-            if k >= start_k:
-                seed_status = s
-                break
+        
+        # find the minimal k >= start_k (closest to start_k)
+        candidates = [(k, s) for (k, s) in polls_idx if k >= start_k]
+        if candidates:
+            k_min, s_min = min(candidates, key=lambda x: x[0])  # closest to start_k
+            seed_status = s_min
+        else:
+            # No pre-window poll found, check if we have in-window polls
+            in_window_polls = [(k, s) for (k, s) in polls_idx if W[0] <= k < W[1]]
+            if in_window_polls:
+                # Use the earliest in-window status rather than hard 'inactive'
+                first_in_k, first_in_s = min(in_window_polls, key=lambda x: x[0])
+                seed_status = first_in_s
                 
         # window polls (ascending k makes sense if you always create (min,max))
         window_polls = [(k,s) for (k,s) in polls_idx if W[0] <= k < W[1]]
