@@ -22,9 +22,6 @@ import logging
 from pathlib import Path
 import pytz
 from collections import defaultdict
-import math
-
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -57,10 +54,22 @@ class ComprehensiveStoreReportService:
             report_data = []
             processed_count = 0
             
+            # Track normalization stats for summary (but don't include in output)
+            normalization_stats = {
+                "timezone_defaulted": 0,
+                "business_hours_defaulted": 0
+            }
+            
             for store_id in all_store_ids:
                 try:
                     # Fetch & normalize only for THIS store
                     normalized_store = self._normalize_store_data(store_id)
+                    
+                    # Track normalization for summary
+                    if normalized_store["normalized"]["timezone_defaulted"]:
+                        normalization_stats["timezone_defaulted"] += 1
+                    if normalized_store["normalized"]["business_hours_defaulted"]:
+                        normalization_stats["business_hours_defaulted"] += 1
                     
                     # Calculate metrics using minute-index algorithm
                     store_metrics = self._process_store_with_minute_index(
@@ -83,21 +92,13 @@ class ComprehensiveStoreReportService:
                 report_id, report_data, max_utc, all_store_ids
             )
             
-            # Step 4: Generate summary
-            summary = self._generate_comprehensive_summary(report_data, all_store_ids)
-            
             logger.info(f"Comprehensive report completed: {len(report_data)}/{len(all_store_ids)} stores processed")
             
             return {
                 "success": True,
                 "report_id": report_id,
-                "total_unique_stores": len(all_store_ids),
-                "successfully_processed": len(report_data),
-                "file_path": str(report_file_path),
-                "summary": summary,
-                "generated_at": datetime.utcnow().isoformat(),
-                "max_utc": max_utc.isoformat(),
-                "algorithm": "Comprehensive Minute-Index with Data Normalization"
+                "stores_data": report_data,
+                "file_path": str(report_file_path)
             }
             
         except Exception as e:
@@ -257,21 +258,11 @@ class ComprehensiveStoreReportService:
         return {
             "store_id": store_id,
             "uptime_last_hour": U_H,              # minutes
-            "uptime_last_day": U_D / 60.0,        # hours
+            "uptime_last_day": U_D / 60.0,        # hours  
             "uptime_last_week": U_W / 60.0,       # hours
             "downtime_last_hour": D_H,            # minutes
             "downtime_last_day": D_D / 60.0,      # hours
-            "downtime_last_week": D_W / 60.0,     # hours
-            "timezone": tz_str,
-            "now_s": now_s_local.isoformat(),
-            "normalization": store_data["normalized"],
-            "algorithm_details": {
-                "total_polls": len(polls_normalized),
-                "bh_intervals_count": len(bh_intervals),
-                "status_spans_count": len(status_spans),
-                "bh_budgets": {"H": B_H, "D": B_D, "W": B_W},
-                "raw_uptimes": {"H": U_H, "D": U_D, "W": U_W}
-            }
+            "downtime_last_week": D_W / 60.0      # hours
         }
     
     # Helper methods (reuse from minute_index_report_service.py)
@@ -327,7 +318,7 @@ class ComprehensiveStoreReportService:
         
         result = self.db.execute(query, {
             "store_id": store_id,
-            "left_dt_utc": left_dt_utc.strftime("%Y-%m-%d %H:%M:%S")
+            "left_dt_utc": left_dt_utc
         }).fetchall()
         
         minute_polls = {}
@@ -391,35 +382,44 @@ class ComprehensiveStoreReportService:
             dow = cursor.weekday()
             
             if dow in business_hours:
+                # Step 1: Collect all day windows (naive datetimes)
+                day_windows = []
                 for start_str, end_str in business_hours[dow]:
                     s = self._parse_time_str(start_str)
                     e = self._parse_time_str(end_str)
 
-                    # Create naive datetimes first, then localize safely
+                    # Create naive datetimes first
                     start_dt_naive = cursor.replace(hour=s.hour, minute=s.minute, second=s.second, microsecond=0, tzinfo=None)
                     end_dt_naive = cursor.replace(hour=e.hour, minute=e.minute, second=e.second, microsecond=0, tzinfo=None)
 
-                    segs = []
-                    if end_dt_naive <= start_dt_naive:  # overnight
-                        midnight_next_naive = cursor.replace(tzinfo=None) + timedelta(days=1)
-                        segs = [(start_dt_naive, midnight_next_naive),  # [start, next 00:00)
-                                (midnight_next_naive.replace(hour=0, minute=0, second=0, microsecond=0), 
-                                 end_dt_naive + timedelta(days=1))]
+                    if end_dt_naive <= start_dt_naive:  # overnight split
+                        midnight_next = (cursor + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+                        day_windows.append((start_dt_naive, midnight_next))
+                        day_windows.append((midnight_next, end_dt_naive + timedelta(days=1)))
                     else:
-                        segs = [(start_dt_naive, end_dt_naive)]  # [start, end)
+                        day_windows.append((start_dt_naive, end_dt_naive))
 
-                    for a_naive, b_naive in segs:
-                        # Use DST-safe localization
-                        a = self._localize_safe(store_tz, a_naive)
-                        b = self._localize_safe(store_tz, b_naive)
-                        
-                        # Fix: Use _ceil_minute for end to include full last minute
-                        # BH of 00:00:00 → 23:59:59 becomes [00:00, 24:00) = 1440 minutes
-                        k_end   = self._minute_index(self._ceil_minute(b), now_s_local)   # end (exclusive)
-                        k_start = self._minute_index(self._floor_minute(a), now_s_local)  # start (inclusive)
-                        a_idx, b_idx = sorted((k_end, k_start))
-                        if 1 <= a_idx < b_idx <= 10081:
-                            bh_intervals.append((a_idx, b_idx))
+                # Step 2: Merge overlapping windows BEFORE localizing
+                day_windows.sort(key=lambda ab: ab[0])
+                merged = []
+                for a, b in day_windows:
+                    if not merged or a > merged[-1][1]:
+                        merged.append([a, b])
+                    else:
+                        merged[-1][1] = max(merged[-1][1], b)
+
+                # Step 3: Convert merged windows to indices
+                for a_naive, b_naive in merged:
+                    # Use DST-safe localization
+                    a = self._localize_safe(store_tz, a_naive)
+                    b = self._localize_safe(store_tz, b_naive)
+                    
+                    # Use _ceil_minute for end to include full last minute
+                    k_end   = self._minute_index(self._ceil_minute(b), now_s_local)   # end (exclusive)
+                    k_start = self._minute_index(self._floor_minute(a), now_s_local)  # start (inclusive)
+                    a_idx, b_idx = sorted((k_end, k_start))
+                    if 1 <= a_idx < b_idx <= 10081:
+                        bh_intervals.append((a_idx, b_idx))
             
             cursor += timedelta(days=1)
         
@@ -445,19 +445,6 @@ class ComprehensiveStoreReportService:
                 from datetime import time
                 return time(0, 0, 0)  # Default to start of day
     
-    def _merge_time_windows(self, windows: List[Tuple[datetime.time, datetime.time]]) -> List[Tuple[datetime.time, datetime.time]]:
-        if not windows:
-            return []
-        windows.sort(key=lambda x: x[0])
-        merged = [windows[0]]
-        for start, end in windows[1:]:
-            last_start, last_end = merged[-1]
-            if start <= last_end:
-                merged[-1] = (last_start, max(last_end, end))
-            else:
-                merged.append((start, end))
-        return merged
-    
     def _build_status_spans_carry_forward(self, polls_idx: List[Tuple[int,str]], W: Tuple[int,int]) -> List[Tuple[int,int,str]]:
         """
         Pure carry-forward + seed-before timeline (no midpoint, no 23:00)
@@ -479,9 +466,8 @@ class ComprehensiveStoreReportService:
             # No pre-window poll found, check if we have in-window polls
             in_window_polls = [(k, s) for (k, s) in polls_idx if W[0] <= k < W[1]]
             if in_window_polls:
-                # Use the earliest in-window status rather than hard 'inactive'
-                first_in_k, first_in_s = min(in_window_polls, key=lambda x: x[0])
-                seed_status = first_in_s
+                # Pick status closest to the band start (largest k inside window)
+                seed_status = max(in_window_polls, key=lambda x: x[0])[1]
                 
         # window polls (ascending k makes sense if you always create (min,max))
         window_polls = [(k,s) for (k,s) in polls_idx if W[0] <= k < W[1]]
@@ -598,11 +584,7 @@ class ComprehensiveStoreReportService:
                 ]
             },
             "report_data": report_data,
-            "failed_store_ids": sorted(list(failed_store_ids)),
-            "normalization_summary": {
-                "stores_with_default_timezone": sum(1 for store in report_data if store["normalization"]["timezone_defaulted"]),
-                "stores_with_default_business_hours": sum(1 for store in report_data if store["normalization"]["business_hours_defaulted"])
-            }
+            "failed_store_ids": sorted(list(failed_store_ids))
         }
         
         with open(report_file, 'w', encoding='utf-8') as f:
@@ -611,46 +593,4 @@ class ComprehensiveStoreReportService:
         logger.info(f"Comprehensive report saved to {report_file}")
         return report_file
     
-    def _generate_comprehensive_summary(self, report_data: List[Dict], all_store_ids: Set[str]) -> Dict[str, Any]:
-        """Generate comprehensive summary statistics"""
-        
-        if not report_data:
-            return {"message": "No data to summarize"}
-        
-        total_stores = len(all_store_ids)
-        processed_stores = len(report_data)
-        
-        # Calculate averages
-        avg_uptime_hour = sum(store["uptime_last_hour"] for store in report_data) / processed_stores
-        avg_uptime_day = sum(store["uptime_last_day"] for store in report_data) / processed_stores
-        avg_uptime_week = sum(store["uptime_last_week"] for store in report_data) / processed_stores
-        
-        # Normalization stats
-        timezone_defaulted = sum(1 for store in report_data if store["normalization"]["timezone_defaulted"])
-        bh_defaulted = sum(1 for store in report_data if store["normalization"]["business_hours_defaulted"])
-        
-        # Active store counts
-        active_hour = sum(1 for store in report_data if store["uptime_last_hour"] > store["downtime_last_hour"])
-        active_day = sum(1 for store in report_data if store["uptime_last_day"] > store["downtime_last_day"])
-        active_week = sum(1 for store in report_data if store["uptime_last_week"] > store["downtime_last_week"])
-        
-        return {
-            "total_unique_stores": total_stores,
-            "successfully_processed": processed_stores,
-            "processing_rate": f"{100 * processed_stores / total_stores:.1f}%",
-            "data_normalization": {
-                "stores_with_default_timezone": f"{timezone_defaulted}/{processed_stores} ({100*timezone_defaulted/processed_stores:.1f}%)",
-                "stores_with_default_business_hours": f"{bh_defaulted}/{processed_stores} ({100*bh_defaulted/processed_stores:.1f}%)"
-            },
-            "averages": {
-                "uptime_last_hour_minutes": round(avg_uptime_hour, 2),
-                "uptime_last_day_hours": round(avg_uptime_day, 2),
-                "uptime_last_week_hours": round(avg_uptime_week, 2)
-            },
-            "active_stores": {
-                "last_hour": f"{active_hour}/{processed_stores} ({100*active_hour/processed_stores:.1f}%)",
-                "last_day": f"{active_day}/{processed_stores} ({100*active_day/processed_stores:.1f}%)",
-                "last_week": f"{active_week}/{processed_stores} ({100*active_week/processed_stores:.1f}%)"
-            },
-            "algorithm": "Comprehensive Minute-Index with Data Normalization"
-        }
+
