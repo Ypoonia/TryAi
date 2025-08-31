@@ -1,7 +1,7 @@
 {
   "report_metadata": {
-    "report_id": "a9f9e117-c2f0-413a-b5a8-0443a0fd9820",
-    "generated_at": "2025-08-31T21:55:49.504374",
+    "report_id": "3e4ce428-cf22-4880-84a9-4384bc5d450c",
+    "generated_at": "2025-08-31T22:45:41.536450",
     "total_stores": 2785,
     "max_utc": "2024-10-14T23:55:18.727055+00:00",
     "algorithm": "Carry-Forward (Seed-Before) Interval Sweep",
@@ -1400,32 +1400,6 @@
       }
     },
     {
-      "store_id": "faa47482-54a6-4aaf-a2fb-0e43341ca328",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 9.7,
-      "uptime_last_week": 68.0,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.8,
-      "downtime_last_week": 19.5,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 750,
-          "W": 5250
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 582.0,
-          "W": 4080.0
-        }
-      }
-    },
-    {
       "store_id": "45546d9b-74d5-4418-9a08-0a8bb5f00be4",
       "uptime_last_hour": 60,
       "uptime_last_day": 9.583333333333334,
@@ -1452,13 +1426,13 @@
       }
     },
     {
-      "store_id": "ebe09aeb-700d-421b-a944-cd2866502ae0",
+      "store_id": "faa47482-54a6-4aaf-a2fb-0e43341ca328",
       "uptime_last_hour": 60,
-      "uptime_last_day": 10.183333333333334,
-      "uptime_last_week": 63.516666666666666,
+      "uptime_last_day": 9.7,
+      "uptime_last_week": 68.0,
       "downtime_last_hour": 0,
-      "downtime_last_day": 2.316666666666667,
-      "downtime_last_week": 25.983333333333334,
+      "downtime_last_day": 2.8,
+      "downtime_last_week": 19.5,
       "timezone": "America/Chicago",
       "now_s": "2024-10-14T18:55:00-05:00",
       "algorithm_details": {
@@ -1468,12 +1442,12 @@
         "bh_budgets": {
           "H": 60,
           "D": 750,
-          "W": 5370
+          "W": 5250
         },
         "raw_uptimes": {
           "H": 60,
-          "D": 611.0,
-          "W": 3811.0
+          "D": 582.0,
+          "W": 4080.0
         }
       }
     },
@@ -1500,6 +1474,32 @@
           "H": 60,
           "D": 615.0,
           "W": 4310.0
+        }
+      }
+    },
+    {
+      "store_id": "ebe09aeb-700d-421b-a944-cd2866502ae0",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 10.183333333333334,
+      "uptime_last_week": 63.516666666666666,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.316666666666667,
+      "downtime_last_week": 25.983333333333334,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 750,
+          "W": 5370
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 611.0,
+          "W": 3811.0
         }
       }
     },
@@ -2206,32 +2206,6 @@
       }
     },
     {
-      "store_id": "2665d6c3-7f9f-434b-9aa9-d36a2dd97366",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 10.7,
-      "uptime_last_week": 77.71666666666667,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.783333333333333,
-      "downtime_last_week": 16.666666666666668,
-      "timezone": "America/Indiana/Indianapolis",
-      "now_s": "2024-10-14T19:55:00-04:00",
-      "algorithm_details": {
-        "total_polls": 61,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 809,
-          "W": 5663
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 642.0,
-          "W": 4663.0
-        }
-      }
-    },
-    {
       "store_id": "835d6a6d-5de1-4cd2-945f-4a5d62c7bb20",
       "uptime_last_hour": 60,
       "uptime_last_day": 12.366666666666667,
@@ -2254,6 +2228,32 @@
           "H": 60,
           "D": 742.0,
           "W": 5317.0
+        }
+      }
+    },
+    {
+      "store_id": "2665d6c3-7f9f-434b-9aa9-d36a2dd97366",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 10.7,
+      "uptime_last_week": 77.71666666666667,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.783333333333333,
+      "downtime_last_week": 16.666666666666668,
+      "timezone": "America/Indiana/Indianapolis",
+      "now_s": "2024-10-14T19:55:00-04:00",
+      "algorithm_details": {
+        "total_polls": 61,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 809,
+          "W": 5663
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 642.0,
+          "W": 4663.0
         }
       }
     },
@@ -2908,32 +2908,6 @@
       }
     },
     {
-      "store_id": "9b886a76-e306-4376-be5b-99ecbbcf496a",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 11.55,
-      "uptime_last_week": 82.93333333333334,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.45,
-      "downtime_last_week": 17.066666666666666,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 10,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 840,
-          "W": 6000
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 693.0,
-          "W": 4976.0
-        }
-      }
-    },
-    {
       "store_id": "95f6418a-59c2-49cb-9c0e-d340768ca434",
       "uptime_last_hour": 60,
       "uptime_last_day": 16.8,
@@ -2956,6 +2930,32 @@
           "H": 60,
           "D": 1008.0,
           "W": 7051.0
+        }
+      }
+    },
+    {
+      "store_id": "9b886a76-e306-4376-be5b-99ecbbcf496a",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 11.55,
+      "uptime_last_week": 82.93333333333334,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.45,
+      "downtime_last_week": 17.066666666666666,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 10,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 840,
+          "W": 6000
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 693.0,
+          "W": 4976.0
         }
       }
     },
@@ -5118,32 +5118,6 @@
       }
     },
     {
-      "store_id": "3e888bdd-d382-4acb-9fd4-2dea392e10fc",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 8.966666666666667,
-      "uptime_last_week": 62.9,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.033333333333333,
-      "downtime_last_week": 14.1,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 660,
-          "W": 4620
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 538.0,
-          "W": 3774.0
-        }
-      }
-    },
-    {
       "store_id": "d388c599-4ee8-499e-ab2a-a1d6230aed54",
       "uptime_last_hour": 60,
       "uptime_last_day": 8.983333333333333,
@@ -5166,6 +5140,32 @@
           "H": 60,
           "D": 539.0,
           "W": 3596.0
+        }
+      }
+    },
+    {
+      "store_id": "3e888bdd-d382-4acb-9fd4-2dea392e10fc",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 8.966666666666667,
+      "uptime_last_week": 62.9,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.033333333333333,
+      "downtime_last_week": 14.1,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 660,
+          "W": 4620
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 538.0,
+          "W": 3774.0
         }
       }
     },
@@ -5742,32 +5742,6 @@
       }
     },
     {
-      "store_id": "ec1be024-235a-4703-ae1d-cc1c22ee5b3d",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 14.733333333333333,
-      "uptime_last_week": 109.58333333333333,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 1.2666666666666666,
-      "downtime_last_week": 18.416666666666668,
-      "timezone": "America/New_York",
-      "now_s": "2024-10-14T19:55:00-04:00",
-      "algorithm_details": {
-        "total_polls": 61,
-        "bh_intervals_count": 7,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 960,
-          "W": 7680
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 884.0,
-          "W": 6575.0
-        }
-      }
-    },
-    {
       "store_id": "24260d03-312a-47c6-bcf6-703903ad16ab",
       "uptime_last_hour": 60,
       "uptime_last_day": 11.283333333333333,
@@ -5790,6 +5764,32 @@
           "H": 60,
           "D": 677.0,
           "W": 4821.0
+        }
+      }
+    },
+    {
+      "store_id": "ec1be024-235a-4703-ae1d-cc1c22ee5b3d",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 14.733333333333333,
+      "uptime_last_week": 109.58333333333333,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 1.2666666666666666,
+      "downtime_last_week": 18.416666666666668,
+      "timezone": "America/New_York",
+      "now_s": "2024-10-14T19:55:00-04:00",
+      "algorithm_details": {
+        "total_polls": 61,
+        "bh_intervals_count": 7,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 960,
+          "W": 7680
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 884.0,
+          "W": 6575.0
         }
       }
     },
@@ -7172,32 +7172,6 @@
       }
     },
     {
-      "store_id": "6b2ee90d-bac7-4ff1-a9f7-1c4ebaec127a",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 9.633333333333333,
-      "uptime_last_week": 65.58333333333333,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 0.36666666666666664,
-      "downtime_last_week": 4.916666666666667,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 187,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 600,
-          "W": 4230
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 578.0,
-          "W": 3935.0
-        }
-      }
-    },
-    {
       "store_id": "327f40b6-5d1a-4f50-8437-bdfb477a4d43",
       "uptime_last_hour": 60,
       "uptime_last_day": 11.016666666666667,
@@ -7220,6 +7194,32 @@
           "H": 60,
           "D": 661.0,
           "W": 4740.0
+        }
+      }
+    },
+    {
+      "store_id": "6b2ee90d-bac7-4ff1-a9f7-1c4ebaec127a",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 9.633333333333333,
+      "uptime_last_week": 65.58333333333333,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 0.36666666666666664,
+      "downtime_last_week": 4.916666666666667,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 187,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 600,
+          "W": 4230
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 578.0,
+          "W": 3935.0
         }
       }
     },
@@ -7640,32 +7640,6 @@
       }
     },
     {
-      "store_id": "a06f2e63-1dd4-484f-a7a7-71a5dc60d5d6",
-      "uptime_last_hour": 0,
-      "uptime_last_day": 0.0,
-      "uptime_last_week": 0.0,
-      "downtime_last_hour": 60,
-      "downtime_last_day": 11.0,
-      "downtime_last_week": 77.0,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 1,
-        "bh_budgets": {
-          "H": 60,
-          "D": 660,
-          "W": 4620
-        },
-        "raw_uptimes": {
-          "H": 0,
-          "D": 0,
-          "W": 0
-        }
-      }
-    },
-    {
       "store_id": "2ed01188-7f1c-45ab-ba0b-8df8bfcfec2e",
       "uptime_last_hour": 60,
       "uptime_last_day": 8.7,
@@ -7688,6 +7662,32 @@
           "H": 60,
           "D": 522.0,
           "W": 3657.0
+        }
+      }
+    },
+    {
+      "store_id": "a06f2e63-1dd4-484f-a7a7-71a5dc60d5d6",
+      "uptime_last_hour": 0,
+      "uptime_last_day": 0.0,
+      "uptime_last_week": 0.0,
+      "downtime_last_hour": 60,
+      "downtime_last_day": 11.0,
+      "downtime_last_week": 77.0,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 1,
+        "bh_budgets": {
+          "H": 60,
+          "D": 660,
+          "W": 4620
+        },
+        "raw_uptimes": {
+          "H": 0,
+          "D": 0,
+          "W": 0
         }
       }
     },
@@ -7926,32 +7926,6 @@
       }
     },
     {
-      "store_id": "d8c95ab6-a9f7-464f-a4dd-4c7645e96a24",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 13.366666666666667,
-      "uptime_last_week": 95.51666666666667,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 0.11666666666666667,
-      "downtime_last_week": 0.9,
-      "timezone": "America/New_York",
-      "now_s": "2024-10-14T19:55:00-04:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 10,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 809,
-          "W": 5785
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 802.0,
-          "W": 5731.0
-        }
-      }
-    },
-    {
       "store_id": "a858f1f0-efd6-4df3-892e-3d1aa6680189",
       "uptime_last_hour": 60,
       "uptime_last_day": 16.783333333333335,
@@ -7974,6 +7948,32 @@
           "H": 60,
           "D": 1007.0,
           "W": 7042.0
+        }
+      }
+    },
+    {
+      "store_id": "d8c95ab6-a9f7-464f-a4dd-4c7645e96a24",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 13.366666666666667,
+      "uptime_last_week": 95.51666666666667,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 0.11666666666666667,
+      "downtime_last_week": 0.9,
+      "timezone": "America/New_York",
+      "now_s": "2024-10-14T19:55:00-04:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 10,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 809,
+          "W": 5785
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 802.0,
+          "W": 5731.0
         }
       }
     },
@@ -8108,32 +8108,6 @@
       }
     },
     {
-      "store_id": "6c3c23cb-9957-482b-92d4-852de473c1fb",
-      "uptime_last_hour": 0,
-      "uptime_last_day": 0.0,
-      "uptime_last_week": 0.0,
-      "downtime_last_hour": 60,
-      "downtime_last_day": 19.0,
-      "downtime_last_week": 133.0,
-      "timezone": "America/Los_Angeles",
-      "now_s": "2024-10-14T16:55:00-07:00",
-      "algorithm_details": {
-        "total_polls": 187,
-        "bh_intervals_count": 10,
-        "status_spans_count": 1,
-        "bh_budgets": {
-          "H": 60,
-          "D": 1140,
-          "W": 7980
-        },
-        "raw_uptimes": {
-          "H": 0,
-          "D": 0,
-          "W": 0
-        }
-      }
-    },
-    {
       "store_id": "a41abd17-9adb-4bb5-b358-95d406cc68cc",
       "uptime_last_hour": 60,
       "uptime_last_day": 9.366666666666667,
@@ -8156,6 +8130,32 @@
           "H": 60,
           "D": 562.0,
           "W": 3936.0
+        }
+      }
+    },
+    {
+      "store_id": "6c3c23cb-9957-482b-92d4-852de473c1fb",
+      "uptime_last_hour": 0,
+      "uptime_last_day": 0.0,
+      "uptime_last_week": 0.0,
+      "downtime_last_hour": 60,
+      "downtime_last_day": 19.0,
+      "downtime_last_week": 133.0,
+      "timezone": "America/Los_Angeles",
+      "now_s": "2024-10-14T16:55:00-07:00",
+      "algorithm_details": {
+        "total_polls": 187,
+        "bh_intervals_count": 10,
+        "status_spans_count": 1,
+        "bh_budgets": {
+          "H": 60,
+          "D": 1140,
+          "W": 7980
+        },
+        "raw_uptimes": {
+          "H": 0,
+          "D": 0,
+          "W": 0
         }
       }
     },
@@ -12710,32 +12710,6 @@
       }
     },
     {
-      "store_id": "73fc5b4f-e277-4f06-94e2-00a6d35c4522",
-      "uptime_last_hour": 0,
-      "uptime_last_day": 0.0,
-      "uptime_last_week": 0.0,
-      "downtime_last_hour": 60,
-      "downtime_last_day": 16.0,
-      "downtime_last_week": 112.0,
-      "timezone": "America/New_York",
-      "now_s": "2024-10-14T19:55:00-04:00",
-      "algorithm_details": {
-        "total_polls": 187,
-        "bh_intervals_count": 10,
-        "status_spans_count": 1,
-        "bh_budgets": {
-          "H": 60,
-          "D": 960,
-          "W": 6720
-        },
-        "raw_uptimes": {
-          "H": 0,
-          "D": 0,
-          "W": 0
-        }
-      }
-    },
-    {
       "store_id": "c3078de6-5b3a-4837-893b-036b0e870095",
       "uptime_last_hour": 60,
       "uptime_last_day": 9.666666666666666,
@@ -12758,6 +12732,32 @@
           "H": 60,
           "D": 580.0,
           "W": 4062.0
+        }
+      }
+    },
+    {
+      "store_id": "73fc5b4f-e277-4f06-94e2-00a6d35c4522",
+      "uptime_last_hour": 0,
+      "uptime_last_day": 0.0,
+      "uptime_last_week": 0.0,
+      "downtime_last_hour": 60,
+      "downtime_last_day": 16.0,
+      "downtime_last_week": 112.0,
+      "timezone": "America/New_York",
+      "now_s": "2024-10-14T19:55:00-04:00",
+      "algorithm_details": {
+        "total_polls": 187,
+        "bh_intervals_count": 10,
+        "status_spans_count": 1,
+        "bh_budgets": {
+          "H": 60,
+          "D": 960,
+          "W": 6720
+        },
+        "raw_uptimes": {
+          "H": 0,
+          "D": 0,
+          "W": 0
         }
       }
     },
@@ -16090,32 +16090,6 @@
       }
     },
     {
-      "store_id": "9a48fced-3212-45cb-ae7d-f5a7f619a29d",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 8.75,
-      "uptime_last_week": 61.31666666666667,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 1.9166666666666667,
-      "downtime_last_week": 13.35,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 640,
-          "W": 4480
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 525.0,
-          "W": 3679.0
-        }
-      }
-    },
-    {
       "store_id": "44f3f195-7185-4dc5-be0e-836dc0aa7ecd",
       "uptime_last_hour": 60,
       "uptime_last_day": 14.716666666666667,
@@ -16138,6 +16112,32 @@
           "H": 60,
           "D": 883.0,
           "W": 6417.0
+        }
+      }
+    },
+    {
+      "store_id": "9a48fced-3212-45cb-ae7d-f5a7f619a29d",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 8.75,
+      "uptime_last_week": 61.31666666666667,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 1.9166666666666667,
+      "downtime_last_week": 13.35,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 640,
+          "W": 4480
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 525.0,
+          "W": 3679.0
         }
       }
     },
@@ -17832,32 +17832,6 @@
       }
     },
     {
-      "store_id": "ed9cbf35-2600-4bec-a7b6-5bf0abc77455",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 8.316666666666666,
-      "uptime_last_week": 58.25,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.35,
-      "downtime_last_week": 16.416666666666668,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 640,
-          "W": 4480
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 499.0,
-          "W": 3495.0
-        }
-      }
-    },
-    {
       "store_id": "46f582ff-26e0-4938-9f36-4e8b474dd4e4",
       "uptime_last_hour": 60,
       "uptime_last_day": 9.466666666666667,
@@ -17880,6 +17854,32 @@
           "H": 60,
           "D": 568.0,
           "W": 4099.0
+        }
+      }
+    },
+    {
+      "store_id": "ed9cbf35-2600-4bec-a7b6-5bf0abc77455",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 8.316666666666666,
+      "uptime_last_week": 58.25,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.35,
+      "downtime_last_week": 16.416666666666668,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 640,
+          "W": 4480
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 499.0,
+          "W": 3495.0
         }
       }
     },
@@ -19470,32 +19470,6 @@
       }
     },
     {
-      "store_id": "1025a8eb-7cf0-4524-b118-01a0a7ce290f",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 6.533333333333333,
-      "uptime_last_week": 47.78333333333333,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.466666666666667,
-      "downtime_last_week": 11.216666666666667,
-      "timezone": "America/New_York",
-      "now_s": "2024-10-14T19:55:00-04:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 540,
-          "W": 3540
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 392.0,
-          "W": 2867.0
-        }
-      }
-    },
-    {
       "store_id": "6d2fda27-6074-496a-8e5a-98fb3bf27333",
       "uptime_last_hour": 0,
       "uptime_last_day": 0.0,
@@ -19518,6 +19492,32 @@
           "H": 0,
           "D": 0,
           "W": 3063.0
+        }
+      }
+    },
+    {
+      "store_id": "1025a8eb-7cf0-4524-b118-01a0a7ce290f",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 6.533333333333333,
+      "uptime_last_week": 47.78333333333333,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.466666666666667,
+      "downtime_last_week": 11.216666666666667,
+      "timezone": "America/New_York",
+      "now_s": "2024-10-14T19:55:00-04:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 540,
+          "W": 3540
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 392.0,
+          "W": 2867.0
         }
       }
     },
@@ -21342,32 +21342,6 @@
       }
     },
     {
-      "store_id": "fdf52a02-7dc7-404f-9a9d-24ab40a20578",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 9.25,
-      "uptime_last_week": 64.81666666666666,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 1.75,
-      "downtime_last_week": 12.183333333333334,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 61,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 660,
-          "W": 4620
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 555.0,
-          "W": 3889.0
-        }
-      }
-    },
-    {
       "store_id": "d8c80705-de1b-419a-8e0d-86bb34d29bff",
       "uptime_last_hour": 0,
       "uptime_last_day": 0.0,
@@ -21390,6 +21364,32 @@
           "H": 0,
           "D": 0,
           "W": 0
+        }
+      }
+    },
+    {
+      "store_id": "fdf52a02-7dc7-404f-9a9d-24ab40a20578",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 9.25,
+      "uptime_last_week": 64.81666666666666,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 1.75,
+      "downtime_last_week": 12.183333333333334,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 61,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 660,
+          "W": 4620
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 555.0,
+          "W": 3889.0
         }
       }
     },
@@ -22642,32 +22642,6 @@
       }
     },
     {
-      "store_id": "8215e2ad-29a7-4cc8-acfc-7780fe512268",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 11.7,
-      "uptime_last_week": 84.0,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.283333333333333,
-      "downtime_last_week": 15.916666666666666,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 10,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 839,
-          "W": 5995
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 702.0,
-          "W": 5040.0
-        }
-      }
-    },
-    {
       "store_id": "8594d606-bee9-4233-840e-83ca8e385760",
       "uptime_last_hour": 60,
       "uptime_last_day": 8.7,
@@ -22690,6 +22664,32 @@
           "H": 60,
           "D": 522.0,
           "W": 3656.0
+        }
+      }
+    },
+    {
+      "store_id": "8215e2ad-29a7-4cc8-acfc-7780fe512268",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 11.7,
+      "uptime_last_week": 84.0,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.283333333333333,
+      "downtime_last_week": 15.916666666666666,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 10,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 839,
+          "W": 5995
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 702.0,
+          "W": 5040.0
         }
       }
     },
@@ -24670,32 +24670,6 @@
       }
     },
     {
-      "store_id": "3821f617-f9da-46f8-9585-b2b180698bb0",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 9.883333333333333,
-      "uptime_last_week": 69.23333333333333,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.6166666666666667,
-      "downtime_last_week": 18.266666666666666,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 750,
-          "W": 5250
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 593.0,
-          "W": 4154.0
-        }
-      }
-    },
-    {
       "store_id": "a1320b77-7b49-42f4-8ad5-90bc69a79cbe",
       "uptime_last_hour": 60,
       "uptime_last_day": 10.516666666666667,
@@ -24718,6 +24692,32 @@
           "H": 60,
           "D": 631.0,
           "W": 4541.0
+        }
+      }
+    },
+    {
+      "store_id": "3821f617-f9da-46f8-9585-b2b180698bb0",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 9.883333333333333,
+      "uptime_last_week": 69.23333333333333,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.6166666666666667,
+      "downtime_last_week": 18.266666666666666,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 750,
+          "W": 5250
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 593.0,
+          "W": 4154.0
         }
       }
     },
@@ -25008,32 +25008,6 @@
       }
     },
     {
-      "store_id": "77a3213d-e29a-44ec-9a41-eca0c1ef9d3e",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 11.266666666666667,
-      "uptime_last_week": 80.93333333333334,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.716666666666667,
-      "downtime_last_week": 18.983333333333334,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 10,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 839,
-          "W": 5995
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 676.0,
-          "W": 4856.0
-        }
-      }
-    },
-    {
       "store_id": "78b5b775-99d4-4875-8803-cda775e254c5",
       "uptime_last_hour": 60,
       "uptime_last_day": 16.833333333333332,
@@ -25056,6 +25030,32 @@
           "H": 60,
           "D": 1010.0,
           "W": 6234.0
+        }
+      }
+    },
+    {
+      "store_id": "77a3213d-e29a-44ec-9a41-eca0c1ef9d3e",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 11.266666666666667,
+      "uptime_last_week": 80.93333333333334,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.716666666666667,
+      "downtime_last_week": 18.983333333333334,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 10,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 839,
+          "W": 5995
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 676.0,
+          "W": 4856.0
         }
       }
     },
@@ -25840,32 +25840,6 @@
       }
     },
     {
-      "store_id": "5e967c08-2103-4181-8466-e9977e2dfc2c",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 10.05,
-      "uptime_last_week": 70.43333333333334,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.45,
-      "downtime_last_week": 17.066666666666666,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 750,
-          "W": 5250
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 603.0,
-          "W": 4226.0
-        }
-      }
-    },
-    {
       "store_id": "f68cac2a-530d-4c27-a294-d2e7161cc471",
       "uptime_last_hour": 60,
       "uptime_last_day": 9.45,
@@ -25888,6 +25862,32 @@
           "H": 60,
           "D": 567.0,
           "W": 4092.0
+        }
+      }
+    },
+    {
+      "store_id": "5e967c08-2103-4181-8466-e9977e2dfc2c",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 10.05,
+      "uptime_last_week": 70.43333333333334,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.45,
+      "downtime_last_week": 17.066666666666666,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 750,
+          "W": 5250
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 603.0,
+          "W": 4226.0
         }
       }
     },
@@ -28180,32 +28180,6 @@
       }
     },
     {
-      "store_id": "5796724b-8f02-4e82-88fc-c3297b91f30f",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 9.066666666666666,
-      "uptime_last_week": 63.5,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.433333333333333,
-      "downtime_last_week": 17.0,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 690,
-          "W": 4830
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 544.0,
-          "W": 3810.0
-        }
-      }
-    },
-    {
       "store_id": "fa761f78-5293-488f-b718-51e08e195980",
       "uptime_last_hour": 60,
       "uptime_last_day": 11.45,
@@ -28228,6 +28202,32 @@
           "H": 60,
           "D": 687.0,
           "W": 4937.0
+        }
+      }
+    },
+    {
+      "store_id": "5796724b-8f02-4e82-88fc-c3297b91f30f",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 9.066666666666666,
+      "uptime_last_week": 63.5,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.433333333333333,
+      "downtime_last_week": 17.0,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 690,
+          "W": 4830
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 544.0,
+          "W": 3810.0
         }
       }
     },
@@ -29506,32 +29506,6 @@
       }
     },
     {
-      "store_id": "9cfbc6f0-d438-4796-b3de-a430831e11bf",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 9.65,
-      "uptime_last_week": 67.56666666666666,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 0.6,
-      "downtime_last_week": 4.183333333333334,
-      "timezone": "America/New_York",
-      "now_s": "2024-10-14T19:55:00-04:00",
-      "algorithm_details": {
-        "total_polls": 187,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 615,
-          "W": 4305
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 579.0,
-          "W": 4054.0
-        }
-      }
-    },
-    {
       "store_id": "f4031478-c362-4564-a7e1-b786351f8858",
       "uptime_last_hour": 60,
       "uptime_last_day": 16.833333333333332,
@@ -29554,6 +29528,32 @@
           "H": 60,
           "D": 1010.0,
           "W": 7063.0
+        }
+      }
+    },
+    {
+      "store_id": "9cfbc6f0-d438-4796-b3de-a430831e11bf",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 9.65,
+      "uptime_last_week": 67.56666666666666,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 0.6,
+      "downtime_last_week": 4.183333333333334,
+      "timezone": "America/New_York",
+      "now_s": "2024-10-14T19:55:00-04:00",
+      "algorithm_details": {
+        "total_polls": 187,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 615,
+          "W": 4305
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 579.0,
+          "W": 4054.0
         }
       }
     },
@@ -30104,32 +30104,6 @@
       }
     },
     {
-      "store_id": "b456e992-8444-407f-b58a-1670a2c24c8b",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 11.6,
-      "uptime_last_week": 80.25,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.4,
-      "downtime_last_week": 19.75,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 61,
-        "bh_intervals_count": 10,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 840,
-          "W": 6000
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 696.0,
-          "W": 4815.0
-        }
-      }
-    },
-    {
       "store_id": "dc256c1c-0727-4a06-b7ac-c8c79a5fef79",
       "uptime_last_hour": 60,
       "uptime_last_day": 8.983333333333333,
@@ -30152,6 +30126,32 @@
           "H": 60,
           "D": 539.0,
           "W": 4262.0
+        }
+      }
+    },
+    {
+      "store_id": "b456e992-8444-407f-b58a-1670a2c24c8b",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 11.6,
+      "uptime_last_week": 80.25,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.4,
+      "downtime_last_week": 19.75,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 61,
+        "bh_intervals_count": 10,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 840,
+          "W": 6000
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 696.0,
+          "W": 4815.0
         }
       }
     },
@@ -32600,32 +32600,6 @@
       }
     },
     {
-      "store_id": "5b323edb-d0a5-4c45-b177-1a38b49df06c",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 13.2,
-      "uptime_last_week": 92.5,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 0.2833333333333333,
-      "downtime_last_week": 1.8833333333333333,
-      "timezone": "America/Phoenix",
-      "now_s": "2024-10-14T16:55:00-07:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 809,
-          "W": 5663
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 792.0,
-          "W": 5550.0
-        }
-      }
-    },
-    {
       "store_id": "50f6a54a-c549-4803-a297-6eb55754387d",
       "uptime_last_hour": 60,
       "uptime_last_day": 8.983333333333333,
@@ -32648,6 +32622,32 @@
           "H": 60,
           "D": 539.0,
           "W": 3777.0
+        }
+      }
+    },
+    {
+      "store_id": "5b323edb-d0a5-4c45-b177-1a38b49df06c",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 13.2,
+      "uptime_last_week": 92.5,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 0.2833333333333333,
+      "downtime_last_week": 1.8833333333333333,
+      "timezone": "America/Phoenix",
+      "now_s": "2024-10-14T16:55:00-07:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 809,
+          "W": 5663
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 792.0,
+          "W": 5550.0
         }
       }
     },
@@ -34524,32 +34524,6 @@
       }
     },
     {
-      "store_id": "731005e8-7812-46a5-a7a8-84d53771a7e4",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 8.2,
-      "uptime_last_week": 59.0,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.3,
-      "downtime_last_week": 16.5,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 630,
-          "W": 4530
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 492.0,
-          "W": 3540.0
-        }
-      }
-    },
-    {
       "store_id": "47cd889d-fd15-4827-9f7e-4577be1260f7",
       "uptime_last_hour": 60,
       "uptime_last_day": 11.75,
@@ -34572,6 +34546,32 @@
           "H": 60,
           "D": 705.0,
           "W": 4882.0
+        }
+      }
+    },
+    {
+      "store_id": "731005e8-7812-46a5-a7a8-84d53771a7e4",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 8.2,
+      "uptime_last_week": 59.0,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.3,
+      "downtime_last_week": 16.5,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 630,
+          "W": 4530
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 492.0,
+          "W": 3540.0
         }
       }
     },
@@ -35174,32 +35174,6 @@
       }
     },
     {
-      "store_id": "25290595-d78a-41f6-821f-5362637d2542",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 11.183333333333334,
-      "uptime_last_week": 79.95,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.8,
-      "downtime_last_week": 19.966666666666665,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 10,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 839,
-          "W": 5995
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 671.0,
-          "W": 4797.0
-        }
-      }
-    },
-    {
       "store_id": "67d5fd30-914e-4ed1-9bad-85f74eff77ab",
       "uptime_last_hour": 0,
       "uptime_last_day": 0.0,
@@ -35222,6 +35196,32 @@
           "H": 0,
           "D": 0,
           "W": 0
+        }
+      }
+    },
+    {
+      "store_id": "25290595-d78a-41f6-821f-5362637d2542",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 11.183333333333334,
+      "uptime_last_week": 79.95,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.8,
+      "downtime_last_week": 19.966666666666665,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 10,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 839,
+          "W": 5995
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 671.0,
+          "W": 4797.0
         }
       }
     },
@@ -35564,32 +35564,6 @@
       }
     },
     {
-      "store_id": "fe4e40d3-9fc4-4c37-bd19-ea2f20768b0b",
-      "uptime_last_hour": 0,
-      "uptime_last_day": 0.0,
-      "uptime_last_week": 0.0,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 0.0,
-      "downtime_last_week": 35.5,
-      "timezone": "America/New_York",
-      "now_s": "2024-10-14T19:55:00-04:00",
-      "algorithm_details": {
-        "total_polls": 187,
-        "bh_intervals_count": 4,
-        "status_spans_count": 1,
-        "bh_budgets": {
-          "H": 0,
-          "D": 0,
-          "W": 2130
-        },
-        "raw_uptimes": {
-          "H": 0,
-          "D": 0,
-          "W": 0
-        }
-      }
-    },
-    {
       "store_id": "b7717077-fb1e-48d3-bef9-248eb8d73426",
       "uptime_last_hour": 60,
       "uptime_last_day": 10.0,
@@ -35612,6 +35586,32 @@
           "H": 60,
           "D": 600.0,
           "W": 4320.0
+        }
+      }
+    },
+    {
+      "store_id": "fe4e40d3-9fc4-4c37-bd19-ea2f20768b0b",
+      "uptime_last_hour": 0,
+      "uptime_last_day": 0.0,
+      "uptime_last_week": 0.0,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 0.0,
+      "downtime_last_week": 35.5,
+      "timezone": "America/New_York",
+      "now_s": "2024-10-14T19:55:00-04:00",
+      "algorithm_details": {
+        "total_polls": 187,
+        "bh_intervals_count": 4,
+        "status_spans_count": 1,
+        "bh_budgets": {
+          "H": 0,
+          "D": 0,
+          "W": 2130
+        },
+        "raw_uptimes": {
+          "H": 0,
+          "D": 0,
+          "W": 0
         }
       }
     },
@@ -37956,32 +37956,6 @@
       }
     },
     {
-      "store_id": "647be713-e645-42c7-9cca-632ec4505395",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 8.9,
-      "uptime_last_week": 62.38333333333333,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 1.7666666666666666,
-      "downtime_last_week": 12.283333333333333,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 640,
-          "W": 4480
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 534.0,
-          "W": 3743.0
-        }
-      }
-    },
-    {
       "store_id": "aa777695-0092-4f26-b535-9f2a26582d65",
       "uptime_last_hour": 60,
       "uptime_last_day": 8.75,
@@ -38004,6 +37978,32 @@
           "H": 60,
           "D": 525.0,
           "W": 3681.0
+        }
+      }
+    },
+    {
+      "store_id": "647be713-e645-42c7-9cca-632ec4505395",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 8.9,
+      "uptime_last_week": 62.38333333333333,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 1.7666666666666666,
+      "downtime_last_week": 12.283333333333333,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 640,
+          "W": 4480
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 534.0,
+          "W": 3743.0
         }
       }
     },
@@ -41830,32 +41830,6 @@
       }
     },
     {
-      "store_id": "5f6c3ee2-5e45-4d9a-9948-f5ac22fc4b7d",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 8.85,
-      "uptime_last_week": 62.0,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.15,
-      "downtime_last_week": 15.0,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 660,
-          "W": 4620
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 531.0,
-          "W": 3720.0
-        }
-      }
-    },
-    {
       "store_id": "5675e7d1-aa84-4aa9-a143-3593006ac816",
       "uptime_last_hour": 60,
       "uptime_last_day": 7.283333333333333,
@@ -41878,6 +41852,32 @@
           "H": 60,
           "D": 437.0,
           "W": 3420.0
+        }
+      }
+    },
+    {
+      "store_id": "5f6c3ee2-5e45-4d9a-9948-f5ac22fc4b7d",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 8.85,
+      "uptime_last_week": 62.0,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.15,
+      "downtime_last_week": 15.0,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 660,
+          "W": 4620
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 531.0,
+          "W": 3720.0
         }
       }
     },
@@ -43910,32 +43910,6 @@
       }
     },
     {
-      "store_id": "cd16925d-e384-4d6c-8a85-3fafa1984483",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 16.983333333333334,
-      "uptime_last_week": 118.8,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 0.0,
-      "downtime_last_week": 0.08333333333333333,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 18,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 1019,
-          "W": 7133
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 1019,
-          "W": 7128.0
-        }
-      }
-    },
-    {
       "store_id": "07fcdf4b-3dd4-40e6-bd55-5f4014d1cbc5",
       "uptime_last_hour": 60,
       "uptime_last_day": 9.75,
@@ -43958,6 +43932,32 @@
           "H": 60,
           "D": 585.0,
           "W": 3554.0
+        }
+      }
+    },
+    {
+      "store_id": "cd16925d-e384-4d6c-8a85-3fafa1984483",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 16.983333333333334,
+      "uptime_last_week": 118.8,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 0.0,
+      "downtime_last_week": 0.08333333333333333,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 18,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 1019,
+          "W": 7133
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 1019,
+          "W": 7128.0
         }
       }
     },
@@ -47212,32 +47212,6 @@
       }
     },
     {
-      "store_id": "7760f2d1-43c4-42d5-93ea-eda59de4ecde",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 9.933333333333334,
-      "uptime_last_week": 69.6,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.566666666666667,
-      "downtime_last_week": 17.9,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 750,
-          "W": 5250
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 596.0,
-          "W": 4176.0
-        }
-      }
-    },
-    {
       "store_id": "850a04dd-8174-456f-929e-a4d730bb1aff",
       "uptime_last_hour": 60,
       "uptime_last_day": 9.45,
@@ -47260,6 +47234,32 @@
           "H": 60,
           "D": 567.0,
           "W": 3972.0
+        }
+      }
+    },
+    {
+      "store_id": "7760f2d1-43c4-42d5-93ea-eda59de4ecde",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 9.933333333333334,
+      "uptime_last_week": 69.6,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.566666666666667,
+      "downtime_last_week": 17.9,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 750,
+          "W": 5250
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 596.0,
+          "W": 4176.0
         }
       }
     },
@@ -48850,32 +48850,6 @@
       }
     },
     {
-      "store_id": "d8991984-9696-4f8c-8f10-5a8d1998efd7",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 16.9,
-      "uptime_last_week": 115.2,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 0.1,
-      "downtime_last_week": 2.8,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 1020,
-          "W": 7080
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 1014.0,
-          "W": 6912.0
-        }
-      }
-    },
-    {
       "store_id": "46ac480c-3dea-4616-aceb-336ee1c3de55",
       "uptime_last_hour": 60,
       "uptime_last_day": 11.283333333333333,
@@ -48898,6 +48872,32 @@
           "H": 60,
           "D": 677.0,
           "W": 4867.0
+        }
+      }
+    },
+    {
+      "store_id": "d8991984-9696-4f8c-8f10-5a8d1998efd7",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 16.9,
+      "uptime_last_week": 115.2,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 0.1,
+      "downtime_last_week": 2.8,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 1020,
+          "W": 7080
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 1014.0,
+          "W": 6912.0
         }
       }
     },
@@ -51346,32 +51346,6 @@
       }
     },
     {
-      "store_id": "fdc0fcf2-b733-404d-9743-6c98b326f44e",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 9.5,
-      "uptime_last_week": 66.58333333333333,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.3333333333333335,
-      "downtime_last_week": 16.25,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 710,
-          "W": 4970
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 570.0,
-          "W": 3995.0
-        }
-      }
-    },
-    {
       "store_id": "82bfbe71-32ad-49f0-8102-e55eb4dd90f8",
       "uptime_last_hour": 60,
       "uptime_last_day": 9.833333333333334,
@@ -51394,6 +51368,32 @@
           "H": 60,
           "D": 590.0,
           "W": 4253.0
+        }
+      }
+    },
+    {
+      "store_id": "fdc0fcf2-b733-404d-9743-6c98b326f44e",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 9.5,
+      "uptime_last_week": 66.58333333333333,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.3333333333333335,
+      "downtime_last_week": 16.25,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 710,
+          "W": 4970
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 570.0,
+          "W": 3995.0
         }
       }
     },
@@ -51580,32 +51580,6 @@
       }
     },
     {
-      "store_id": "147e3a95-671f-4c6e-8608-d0da0a2e16d9",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 13.05,
-      "uptime_last_week": 87.28333333333333,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 0.45,
-      "downtime_last_week": 7.216666666666667,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 810,
-          "W": 5670
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 783.0,
-          "W": 5237.0
-        }
-      }
-    },
-    {
       "store_id": "fe2fe979-a98d-4338-97a7-d7bfb748ee5e",
       "uptime_last_hour": 60,
       "uptime_last_day": 10.55,
@@ -51628,6 +51602,32 @@
           "H": 60,
           "D": 633.0,
           "W": 4668.0
+        }
+      }
+    },
+    {
+      "store_id": "147e3a95-671f-4c6e-8608-d0da0a2e16d9",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 13.05,
+      "uptime_last_week": 87.28333333333333,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 0.45,
+      "downtime_last_week": 7.216666666666667,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 810,
+          "W": 5670
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 783.0,
+          "W": 5237.0
         }
       }
     },
@@ -51840,32 +51840,6 @@
       }
     },
     {
-      "store_id": "b6441c87-0ea8-43ae-9a3c-ec08b4bff03d",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 11.45,
-      "uptime_last_week": 82.18333333333334,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.55,
-      "downtime_last_week": 17.816666666666666,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 10,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 840,
-          "W": 6000
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 687.0,
-          "W": 4931.0
-        }
-      }
-    },
-    {
       "store_id": "7ca4ac3f-942f-484b-81c5-c452acdc7e0f",
       "uptime_last_hour": 60,
       "uptime_last_day": 11.666666666666666,
@@ -51888,6 +51862,32 @@
           "H": 60,
           "D": 700.0,
           "W": 5434.0
+        }
+      }
+    },
+    {
+      "store_id": "b6441c87-0ea8-43ae-9a3c-ec08b4bff03d",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 11.45,
+      "uptime_last_week": 82.18333333333334,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.55,
+      "downtime_last_week": 17.816666666666666,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 10,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 840,
+          "W": 6000
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 687.0,
+          "W": 4931.0
         }
       }
     },
@@ -53426,32 +53426,6 @@
       }
     },
     {
-      "store_id": "c6aadad9-16ea-4fa7-a645-6cd463b9d82e",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 9.883333333333333,
-      "uptime_last_week": 69.23333333333333,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.6166666666666667,
-      "downtime_last_week": 18.266666666666666,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 60,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 750,
-          "W": 5250
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 593.0,
-          "W": 4154.0
-        }
-      }
-    },
-    {
       "store_id": "13838788-019d-42a6-a517-d228dc5be476",
       "uptime_last_hour": 60,
       "uptime_last_day": 9.566666666666666,
@@ -53474,6 +53448,32 @@
           "H": 60,
           "D": 574.0,
           "W": 4137.0
+        }
+      }
+    },
+    {
+      "store_id": "c6aadad9-16ea-4fa7-a645-6cd463b9d82e",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 9.883333333333333,
+      "uptime_last_week": 69.23333333333333,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.6166666666666667,
+      "downtime_last_week": 18.266666666666666,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 60,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 750,
+          "W": 5250
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 593.0,
+          "W": 4154.0
         }
       }
     },
@@ -53894,32 +53894,6 @@
       }
     },
     {
-      "store_id": "bab07197-bed9-4f19-9a13-5bc1bb7c4bbb",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 11.15,
-      "uptime_last_week": 78.08333333333333,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.3333333333333335,
-      "downtime_last_week": 16.3,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 809,
-          "W": 5663
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 669.0,
-          "W": 4685.0
-        }
-      }
-    },
-    {
       "store_id": "78104331-9242-4bce-8971-2e2b8cafc5b9",
       "uptime_last_hour": 60,
       "uptime_last_day": 8.616666666666667,
@@ -53942,6 +53916,32 @@
           "H": 60,
           "D": 517.0,
           "W": 3624.0
+        }
+      }
+    },
+    {
+      "store_id": "bab07197-bed9-4f19-9a13-5bc1bb7c4bbb",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 11.15,
+      "uptime_last_week": 78.08333333333333,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.3333333333333335,
+      "downtime_last_week": 16.3,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 809,
+          "W": 5663
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 669.0,
+          "W": 4685.0
         }
       }
     },
@@ -57456,32 +57456,6 @@
       }
     },
     {
-      "store_id": "9cfcfd70-04b5-40b7-a82c-ab31dd77d790",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 8.65,
-      "uptime_last_week": 60.583333333333336,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.35,
-      "downtime_last_week": 16.416666666666668,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 660,
-          "W": 4620
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 519.0,
-          "W": 3635.0
-        }
-      }
-    },
-    {
       "store_id": "d268469a-efb8-417b-8ead-d3db7c38ba36",
       "uptime_last_hour": 60,
       "uptime_last_day": 10.1,
@@ -57504,6 +57478,32 @@
           "H": 60,
           "D": 606.0,
           "W": 4246.0
+        }
+      }
+    },
+    {
+      "store_id": "9cfcfd70-04b5-40b7-a82c-ab31dd77d790",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 8.65,
+      "uptime_last_week": 60.583333333333336,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.35,
+      "downtime_last_week": 16.416666666666668,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 660,
+          "W": 4620
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 519.0,
+          "W": 3635.0
         }
       }
     },
@@ -60732,32 +60732,6 @@
       }
     },
     {
-      "store_id": "ac41e3f4-aa60-49d3-ae5a-f74a7f5e9f69",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 9.883333333333333,
-      "uptime_last_week": 69.2,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.6166666666666667,
-      "downtime_last_week": 18.3,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 61,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 750,
-          "W": 5250
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 593.0,
-          "W": 4152.0
-        }
-      }
-    },
-    {
       "store_id": "c5d22b77-a3b6-48c5-a958-55dd5e760c91",
       "uptime_last_hour": 60,
       "uptime_last_day": 8.3,
@@ -60780,6 +60754,32 @@
           "H": 60,
           "D": 498.0,
           "W": 3489.0
+        }
+      }
+    },
+    {
+      "store_id": "ac41e3f4-aa60-49d3-ae5a-f74a7f5e9f69",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 9.883333333333333,
+      "uptime_last_week": 69.2,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.6166666666666667,
+      "downtime_last_week": 18.3,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 61,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 750,
+          "W": 5250
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 593.0,
+          "W": 4152.0
         }
       }
     },
@@ -63930,32 +63930,6 @@
       }
     },
     {
-      "store_id": "b2ec5809-4b9f-458f-a902-e2115136867c",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 14.033333333333333,
-      "uptime_last_week": 97.91666666666667,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.966666666666667,
-      "downtime_last_week": 21.083333333333332,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 1020,
-          "W": 7140
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 842.0,
-          "W": 5875.0
-        }
-      }
-    },
-    {
       "store_id": "b24ded51-f21f-41a3-b546-321b67acde21",
       "uptime_last_hour": 60,
       "uptime_last_day": 6.15,
@@ -63978,6 +63952,32 @@
           "H": 60,
           "D": 369.0,
           "W": 3087.0
+        }
+      }
+    },
+    {
+      "store_id": "b2ec5809-4b9f-458f-a902-e2115136867c",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 14.033333333333333,
+      "uptime_last_week": 97.91666666666667,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.966666666666667,
+      "downtime_last_week": 21.083333333333332,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 1020,
+          "W": 7140
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 842.0,
+          "W": 5875.0
         }
       }
     },
@@ -64528,32 +64528,6 @@
       }
     },
     {
-      "store_id": "38ad61f2-a790-475d-a3f1-1c24336608aa",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 8.983333333333333,
-      "uptime_last_week": 62.93333333333333,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.0166666666666666,
-      "downtime_last_week": 14.066666666666666,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 660,
-          "W": 4620
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 539.0,
-          "W": 3776.0
-        }
-      }
-    },
-    {
       "store_id": "20fc6d2f-a1b1-47a7-b9d4-7144d3b2c727",
       "uptime_last_hour": 60,
       "uptime_last_day": 11.55,
@@ -64576,6 +64550,32 @@
           "H": 60,
           "D": 693.0,
           "W": 4974.0
+        }
+      }
+    },
+    {
+      "store_id": "38ad61f2-a790-475d-a3f1-1c24336608aa",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 8.983333333333333,
+      "uptime_last_week": 62.93333333333333,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.0166666666666666,
+      "downtime_last_week": 14.066666666666666,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 660,
+          "W": 4620
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 539.0,
+          "W": 3776.0
         }
       }
     },
@@ -65516,32 +65516,6 @@
       }
     },
     {
-      "store_id": "f63a2db2-b1c9-47d7-99b7-4b1252528458",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 11.483333333333333,
-      "uptime_last_week": 82.51666666666667,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.5,
-      "downtime_last_week": 17.4,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 10,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 839,
-          "W": 5995
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 689.0,
-          "W": 4951.0
-        }
-      }
-    },
-    {
       "store_id": "2dbea5bf-8a87-4e03-9bce-7806c755e478",
       "uptime_last_hour": 60,
       "uptime_last_day": 10.1,
@@ -65564,6 +65538,32 @@
           "H": 60,
           "D": 606.0,
           "W": 4243.0
+        }
+      }
+    },
+    {
+      "store_id": "f63a2db2-b1c9-47d7-99b7-4b1252528458",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 11.483333333333333,
+      "uptime_last_week": 82.51666666666667,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.5,
+      "downtime_last_week": 17.4,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 10,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 839,
+          "W": 5995
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 689.0,
+          "W": 4951.0
         }
       }
     },
@@ -66634,32 +66634,6 @@
       }
     },
     {
-      "store_id": "5c75c2b9-a165-4d3c-a58d-b06c6aad5664",
-      "uptime_last_hour": 0,
-      "uptime_last_day": 0.0,
-      "uptime_last_week": 0.0,
-      "downtime_last_hour": 60,
-      "downtime_last_day": 24.0,
-      "downtime_last_week": 168.0,
-      "timezone": "America/Los_Angeles",
-      "now_s": "2024-10-14T16:55:00-07:00",
-      "algorithm_details": {
-        "total_polls": 187,
-        "bh_intervals_count": 1,
-        "status_spans_count": 1,
-        "bh_budgets": {
-          "H": 60,
-          "D": 1440,
-          "W": 10080
-        },
-        "raw_uptimes": {
-          "H": 0,
-          "D": 0,
-          "W": 0
-        }
-      }
-    },
-    {
       "store_id": "03842999-9dd1-4e78-9ba7-cf4fd2ee8d82",
       "uptime_last_hour": 60,
       "uptime_last_day": 10.45,
@@ -66682,6 +66656,32 @@
           "H": 60,
           "D": 627.0,
           "W": 4037.0
+        }
+      }
+    },
+    {
+      "store_id": "5c75c2b9-a165-4d3c-a58d-b06c6aad5664",
+      "uptime_last_hour": 0,
+      "uptime_last_day": 0.0,
+      "uptime_last_week": 0.0,
+      "downtime_last_hour": 60,
+      "downtime_last_day": 24.0,
+      "downtime_last_week": 168.0,
+      "timezone": "America/Los_Angeles",
+      "now_s": "2024-10-14T16:55:00-07:00",
+      "algorithm_details": {
+        "total_polls": 187,
+        "bh_intervals_count": 1,
+        "status_spans_count": 1,
+        "bh_budgets": {
+          "H": 60,
+          "D": 1440,
+          "W": 10080
+        },
+        "raw_uptimes": {
+          "H": 0,
+          "D": 0,
+          "W": 0
         }
       }
     },
@@ -68168,32 +68168,6 @@
       }
     },
     {
-      "store_id": "c91f4dd8-7322-4849-b65a-9de8eea06488",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 8.583333333333334,
-      "uptime_last_week": 60.083333333333336,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.0833333333333335,
-      "downtime_last_week": 14.583333333333334,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 640,
-          "W": 4480
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 515.0,
-          "W": 3605.0
-        }
-      }
-    },
-    {
       "store_id": "f3dd8edc-2ca9-4358-a325-21f1829f2c86",
       "uptime_last_hour": 0,
       "uptime_last_day": 0.0,
@@ -68216,6 +68190,32 @@
           "H": 0,
           "D": 0,
           "W": 0
+        }
+      }
+    },
+    {
+      "store_id": "c91f4dd8-7322-4849-b65a-9de8eea06488",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 8.583333333333334,
+      "uptime_last_week": 60.083333333333336,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.0833333333333335,
+      "downtime_last_week": 14.583333333333334,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 640,
+          "W": 4480
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 515.0,
+          "W": 3605.0
         }
       }
     },
@@ -68246,32 +68246,6 @@
       }
     },
     {
-      "store_id": "e3a416c3-ae59-4141-bf4f-3cdf0bd960d2",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 10.65,
-      "uptime_last_week": 74.73333333333333,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.85,
-      "downtime_last_week": 19.766666666666666,
-      "timezone": "America/Phoenix",
-      "now_s": "2024-10-14T16:55:00-07:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 810,
-          "W": 5670
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 639.0,
-          "W": 4484.0
-        }
-      }
-    },
-    {
       "store_id": "90bea824-e98d-4588-b1d1-95508b49f2fe",
       "uptime_last_hour": 60,
       "uptime_last_day": 8.983333333333333,
@@ -68294,6 +68268,32 @@
           "H": 60,
           "D": 539.0,
           "W": 3774.0
+        }
+      }
+    },
+    {
+      "store_id": "e3a416c3-ae59-4141-bf4f-3cdf0bd960d2",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 10.65,
+      "uptime_last_week": 74.73333333333333,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.85,
+      "downtime_last_week": 19.766666666666666,
+      "timezone": "America/Phoenix",
+      "now_s": "2024-10-14T16:55:00-07:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 810,
+          "W": 5670
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 639.0,
+          "W": 4484.0
         }
       }
     },
@@ -70274,32 +70274,6 @@
       }
     },
     {
-      "store_id": "f3ee2f9b-ec02-4419-971e-28d1c0ce026c",
-      "uptime_last_hour": 20.0,
-      "uptime_last_day": 13.933333333333334,
-      "uptime_last_week": 115.28333333333333,
-      "downtime_last_hour": 40.0,
-      "downtime_last_day": 3.05,
-      "downtime_last_week": 3.6,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 18,
-        "status_spans_count": 17,
-        "bh_budgets": {
-          "H": 60,
-          "D": 1019,
-          "W": 7133
-        },
-        "raw_uptimes": {
-          "H": 20.0,
-          "D": 836.0,
-          "W": 6917.0
-        }
-      }
-    },
-    {
       "store_id": "bbfc5e32-5e37-405e-971a-8d75f505a9e2",
       "uptime_last_hour": 60,
       "uptime_last_day": 9.566666666666666,
@@ -70322,6 +70296,32 @@
           "H": 60,
           "D": 574.0,
           "W": 5229.0
+        }
+      }
+    },
+    {
+      "store_id": "f3ee2f9b-ec02-4419-971e-28d1c0ce026c",
+      "uptime_last_hour": 20.0,
+      "uptime_last_day": 13.933333333333334,
+      "uptime_last_week": 115.28333333333333,
+      "downtime_last_hour": 40.0,
+      "downtime_last_day": 3.05,
+      "downtime_last_week": 3.6,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 18,
+        "status_spans_count": 17,
+        "bh_budgets": {
+          "H": 60,
+          "D": 1019,
+          "W": 7133
+        },
+        "raw_uptimes": {
+          "H": 20.0,
+          "D": 836.0,
+          "W": 6917.0
         }
       }
     },
@@ -70872,32 +70872,6 @@
       }
     },
     {
-      "store_id": "56be2beb-5b36-4f56-8439-1e0da359cbe3",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 16.816666666666666,
-      "uptime_last_week": 121.61666666666666,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 0.18333333333333332,
-      "downtime_last_week": 1.3833333333333333,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 62,
-        "bh_intervals_count": 10,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 1020,
-          "W": 7380
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 1009.0,
-          "W": 7297.0
-        }
-      }
-    },
-    {
       "store_id": "ae95a608-76f0-4038-a9dc-43069229a03d",
       "uptime_last_hour": 60,
       "uptime_last_day": 16.833333333333332,
@@ -70920,6 +70894,32 @@
           "H": 60,
           "D": 1010.0,
           "W": 7064.0
+        }
+      }
+    },
+    {
+      "store_id": "56be2beb-5b36-4f56-8439-1e0da359cbe3",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 16.816666666666666,
+      "uptime_last_week": 121.61666666666666,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 0.18333333333333332,
+      "downtime_last_week": 1.3833333333333333,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 62,
+        "bh_intervals_count": 10,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 1020,
+          "W": 7380
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 1009.0,
+          "W": 7297.0
         }
       }
     },
@@ -71028,32 +71028,6 @@
       }
     },
     {
-      "store_id": "4c30b594-f387-4e8f-852b-4f2f4760ed66",
-      "uptime_last_hour": 60,
-      "uptime_last_day": 8.233333333333333,
-      "uptime_last_week": 59.18333333333333,
-      "downtime_last_hour": 0,
-      "downtime_last_day": 2.2666666666666666,
-      "downtime_last_week": 16.316666666666666,
-      "timezone": "America/Chicago",
-      "now_s": "2024-10-14T18:55:00-05:00",
-      "algorithm_details": {
-        "total_polls": 61,
-        "bh_intervals_count": 9,
-        "status_spans_count": 15,
-        "bh_budgets": {
-          "H": 60,
-          "D": 630,
-          "W": 4530
-        },
-        "raw_uptimes": {
-          "H": 60,
-          "D": 494.0,
-          "W": 3551.0
-        }
-      }
-    },
-    {
       "store_id": "dc6a297e-6636-430a-98d1-2089526a01ed",
       "uptime_last_hour": 0,
       "uptime_last_day": 0.0,
@@ -71076,6 +71050,32 @@
           "H": 0,
           "D": 0,
           "W": 0
+        }
+      }
+    },
+    {
+      "store_id": "4c30b594-f387-4e8f-852b-4f2f4760ed66",
+      "uptime_last_hour": 60,
+      "uptime_last_day": 8.233333333333333,
+      "uptime_last_week": 59.18333333333333,
+      "downtime_last_hour": 0,
+      "downtime_last_day": 2.2666666666666666,
+      "downtime_last_week": 16.316666666666666,
+      "timezone": "America/Chicago",
+      "now_s": "2024-10-14T18:55:00-05:00",
+      "algorithm_details": {
+        "total_polls": 61,
+        "bh_intervals_count": 9,
+        "status_spans_count": 15,
+        "bh_budgets": {
+          "H": 60,
+          "D": 630,
+          "W": 4530
+        },
+        "raw_uptimes": {
+          "H": 60,
+          "D": 494.0,
+          "W": 3551.0
         }
       }
     },
