@@ -158,37 +158,3 @@ class ReportService:
         reports_dir = os.path.join(os.getcwd(), "reports")
         os.makedirs(reports_dir, exist_ok=True)
         return os.path.join(reports_dir, f"{report_id}.{format_type}")
-
-    @staticmethod
-    def cleanup_old_reports(db: Session, keep_count: int = 10) -> Dict[str, Any]:
-        """Clean up old report files and database records (admin utility)"""
-        try:
-            # Get all reports ordered by creation date (newest first)
-            all_reports = ReportCRUD.get_all_reports(db, skip=0, limit=1000)
-            all_reports.sort(key=lambda r: r.created_at, reverse=True)
-
-            if len(all_reports) <= keep_count:
-                return {"deleted_count": 0, "message": "No cleanup needed"}
-
-            # Delete old reports
-            deleted_count = 0
-            for report in all_reports[keep_count:]:
-                # Delete file if it exists
-                if report.url and report.url.startswith("file://"):
-                    file_path = report.url.replace("file://", "")
-                    try:
-                        if os.path.exists(file_path):
-                            os.remove(file_path)
-                    except OSError:
-                        logger.warning(f"Could not delete file: {file_path}")
-
-                # Delete database record
-                if ReportCRUD.delete_report(db, report.report_id):
-                    deleted_count += 1
-
-            logger.info(f"Cleaned up {deleted_count} old reports")
-            return {"deleted_count": deleted_count, "message": f"Cleaned up {deleted_count} old reports"}
-
-        except Exception as e:
-            logger.exception("Error during report cleanup")
-            raise ReportServiceError(f"Cleanup failed: {e}") from e

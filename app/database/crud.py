@@ -6,7 +6,7 @@ Repository (CRUD) operations for Report model with consistent behavior.
 - Raises on DB failures (so upper layers aren't forced to guess).
 """
 
-from typing import Optional, List
+from typing import Optional
 import logging
 
 from sqlalchemy.orm import Session
@@ -26,7 +26,6 @@ class RepositoryError(RuntimeError):
 class ReportCRUD:
     """Repository for Report model"""
 
-    @staticmethod
     def create_report(db: Session, report_id: str, status: ReportStatus = ReportStatus.PENDING) -> Report:
         try:
             db_report = Report(report_id=report_id, status=status.value)
@@ -40,7 +39,6 @@ class ReportCRUD:
             logger.exception("DB error creating report")
             raise RepositoryError(str(e)) from e
 
-    @staticmethod
     def get_report_by_id(db: Session, report_id: str) -> Optional[Report]:
         try:
             return db.query(Report).filter(Report.report_id == report_id).first()
@@ -48,7 +46,6 @@ class ReportCRUD:
             logger.exception("DB error fetching report by id")
             raise RepositoryError(str(e)) from e
 
-    @staticmethod
     def get_latest_active_report(db: Session) -> Optional[Report]:
         """
         Return most recent report with status in (PENDING, RUNNING).
@@ -64,7 +61,6 @@ class ReportCRUD:
             logger.exception("DB error fetching latest active report")
             raise RepositoryError(str(e)) from e
 
-    @staticmethod
     def set_report_status_and_url(
         db: Session, report_id: str, status: ReportStatus, url: Optional[str] = None
     ) -> Report:
@@ -87,36 +83,11 @@ class ReportCRUD:
             logger.exception("DB error updating report status/url")
             raise RepositoryError(str(e)) from e
 
-    @staticmethod
-    def get_all_reports(db: Session, skip: int = 0, limit: int = 100) -> List[Report]:
-        try:
-            return db.query(Report).offset(skip).limit(limit).all()
-        except SQLAlchemyError as e:
-            logger.exception("DB error fetching all reports")
-            raise RepositoryError(str(e)) from e
-
-    @staticmethod
-    def delete_report(db: Session, report_id: str) -> bool:
-        try:
-            db_report = db.query(Report).filter(Report.report_id == report_id).first()
-            if not db_report:
-                return False
-            db.delete(db_report)
-            db.commit()
-            logger.info("Report deleted", extra={"report_id": report_id})
-            return True
-        except SQLAlchemyError as e:
-            db.rollback()
-            logger.exception("DB error deleting report")
-            raise RepositoryError(str(e)) from e
-
     # Legacy method names for compatibility with existing code
-    @staticmethod
     def get_latest_pending_report(db: Session) -> Optional[Report]:
         """Legacy alias for get_latest_active_report"""
         return ReportCRUD.get_latest_active_report(db)
 
-    @staticmethod
     def update_report_status(db: Session, report_id: str, new_status: str) -> Optional[Report]:
         """Legacy method - convert string status to enum"""
         try:
