@@ -28,6 +28,7 @@ class ReportUpdate(BaseModel):
 class ReportResponse(BaseModel):
     """Schema for report response"""
     report_id: str = Field(..., description="Unique report identifier")
+    status: str = Field(..., description="Report status (RUNNING)")
 
     class Config:
         from_attributes = True
@@ -37,6 +38,7 @@ class ReportStatusResponse(BaseModel):
     """Schema for report status response"""
     status: str = Field(..., description="Current report status")
     report_id: str = Field(..., description="Report identifier")
+    url: Optional[str] = Field(None, description="Report URL (only when COMPLETE)")
 
     class Config:
         from_attributes = True

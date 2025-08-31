@@ -25,7 +25,7 @@ def get_report_controller(db: Session = Depends(get_db)) -> ReportController:
     return ReportController(db)
 
 
-@router.post("/trigger", response_model=ReportResponse, summary="Trigger new report")
+@router.post("/trigger", response_model=ReportResponse, summary="Trigger new report", status_code=202)
 def trigger_report(controller: ReportController = Depends(get_report_controller)):
     """
     Trigger a new report generation
@@ -33,13 +33,13 @@ def trigger_report(controller: ReportController = Depends(get_report_controller)
     **Business Rules:**
     - Only one PENDING report allowed at a time
     - Generates unique timestamp-based report ID
-    - Updates JSON tracking file
+    - Automatically sets status to RUNNING
     
     **Returns:**
-    - report_id: Unique identifier for the created report
+    - 202: {report_id, status:"RUNNING"}
     
     **Errors:**
-    - 409: PENDING report already exists
+    - 409: PENDING/RUNNING report already exists (with existing report_id)
     - 500: Internal server error
     """
     return controller.trigger_report()
@@ -147,6 +147,46 @@ def update_report_status(
     - 500: Internal server error
     """
     return controller.update_report_status(report_id, new_status)
+
+
+@router.put("/complete", response_model=ReportDetailResponse, summary="Complete report with URL")
+def complete_report_with_url(
+    report_id: str,
+    status: str,
+    url: str = None,
+    controller: ReportController = Depends(get_report_controller)
+):
+    """
+    Update report status and URL (for compute workers)
+    
+    **Parameters:**
+    - report_id: Unique report identifier
+    - status: New status (RUNNING/COMPLETE/FAILED)
+    - url: Report output URL (optional, typically for COMPLETE status)
+    
+    **Business Rules:**
+    - URL should typically only be provided for COMPLETE status
+    - Completed/Failed reports are removed from JSON tracking
+    - URL visibility follows business rules (only shown when COMPLETE)
+    
+    **Returns:**
+    - Updated report details with URL
+    
+    **Errors:**
+    - 400: Invalid report_id or status
+    - 404: Report not found
+    - 500: Internal server error
+    
+    **Example Usage for Compute Workers:**
+    ```bash
+    # Mark as RUNNING when compute starts
+    curl -X PUT "http://localhost:8001/reports/complete?report_id=123&status=RUNNING"
+    
+    # Mark as COMPLETE with URL when done
+    curl -X PUT "http://localhost:8001/reports/complete?report_id=123&status=COMPLETE&url=file:///path/to/report.json"
+    ```
+    """
+    return controller.set_report_status_and_url(report_id, status, url)
 
 
 # ============================================
