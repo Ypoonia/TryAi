@@ -30,7 +30,7 @@ def get_report(
     """Get report status or download CSV when ready"""
     status_result = controller.get_report_status(report_id)
     
-    if status_result.status != "COMPLETE":
+    if status_result.status != "COMPLETED":
         return {"status": "Running"}
     
     return {"status": "Complete", "url": status_result.url}
