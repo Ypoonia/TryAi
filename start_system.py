@@ -45,9 +45,11 @@ def start_celery_worker():
 def start_api_server():
     """Start the API server"""
     print("🚀 Starting API server...")
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(Path(__file__).parent)
     api_process = subprocess.Popen([
-        sys.executable, "main_rcs.py"
-    ])
+        sys.executable, "app/main_rcs.py"
+    ], env=env)
     return api_process
 
 def main():

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CSV → Neon Postgres (raw mirror)
+CSV → Local PostgreSQL (raw mirror)
 - Creates raw.* tables that mirror CSVs exactly (all TEXT, headers preserved)
 - TRUNCATEs and loads via COPY (fast, streamy, robust)
 - Verifies row counts after load
@@ -12,7 +12,7 @@ import psycopg2
 from psycopg2 import sql
 
 # Database connection string
-DB_URL = "postgresql://neondb_owner:npg_HNBZ6c8dUnuC@ep-fragrant-snow-a1gvjf6b-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DB_URL = "postgresql://localhost/store_monitoring"
 
 BASE = Path(__file__).resolve().parent
 

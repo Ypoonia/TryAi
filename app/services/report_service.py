@@ -13,7 +13,6 @@ import os
 from datetime import datetime
 from typing import Optional, Dict, Any
 from .minute_index_report_service import MinuteIndexReportService
-from .comprehensive_store_report_service import ComprehensiveStoreReportService
 from app.tasks.report_tasks import generate_report
 
 from app.models.report import Report
@@ -33,7 +32,6 @@ class ReportService:
         self.db = db
         self.crud = ReportCRUD
         self.minute_index_service = MinuteIndexReportService(db)
-        self.comprehensive_service = ComprehensiveStoreReportService(db)
     
     def generate_report_id(self) -> str:
         """Generate a unique report ID"""
@@ -75,64 +73,52 @@ class ReportService:
                 "message": f"Error validating report creation: {str(e)}"
             }
     
-    def create_new_report(self) -> Dict[str, Any]:
+    def create_new_report(self, comprehensive: bool = True) -> Dict[str, Any]:
         """
-        Business operation: Create a new report
-        Handles all business logic for report creation
+        Business logic: Create a new report if none are pending
+        Always uses comprehensive processing (full batch) by default
         """
         try:
-            # Business rule validation
+            # Check if we can create a new report
             validation = self.can_create_new_report()
             if not validation["can_create"]:
+                return validation
+            
+            # Generate unique report ID
+            report_id = self.generate_report_id()
+            
+            # Create database record
+            success = self.crud.create_report(self.db, report_id)
+            if not success:
                 return {
                     "success": False,
-                    "error_code": "CREATION_BLOCKED",
-                    "data": validation
+                    "error_code": "DB_CREATE_FAILED",
+                    "data": {"message": "Failed to create database record"}
                 }
             
-            # Generate unique ID
-            report_id = self.generate_report_id()
-            logger.info(f"Creating new report with ID: {report_id}")
-            
-            # Create report in database
-            db_report = self.crud.create_report(self.db, report_id, "PENDING")
-            
-            # Update JSON tracking (business requirement)
+            # Update JSON tracking
             self._update_current_report_json(report_id, "PENDING")
             
-            logger.info(f"Report {report_id} created successfully")
-            
-            # Trigger Celery task for async processing
-            try:
-                task = generate_report.delay(report_id)
-                logger.info(f"Celery task enqueued for report {report_id}: {task.id}")
-            except Exception as e:
-                logger.error(f"Failed to enqueue Celery task for report {report_id}: {e}")
-                # Mark as FAILED if Celery is not available
-                self.set_report_status_and_url(report_id, "FAILED")
-                return {
-                    "success": False,
-                    "error_code": "CELERY_FAILED",
-                    "data": {"message": f"Failed to start report generation: {str(e)}"}
-                }
+            # Trigger async processing - ALWAYS use full batch (50000 stores)
+            max_stores = 50000  # Process all stores
+            logger.info(f"Triggering report {report_id} with max_stores={max_stores} (comprehensive={comprehensive})")
+            generate_report.delay(report_id, max_stores)
             
             return {
                 "success": True,
                 "error_code": None,
                 "data": {
-                    "report": db_report,
                     "report_id": report_id,
-                    "status": "PENDING",
-                    "task_id": task.id,
-                    "created_at": db_report.created_at
+                    "status": "RUNNING",
+                    "message": f"Report generation started for {max_stores} stores"
                 }
             }
             
         except Exception as e:
-            logger.error(f"Error creating report: {e}")
+            logger.error(f"Error creating new report: {e}")
             return {
                 "success": False,
-                "error_code": "CREATION_FAILED",
+                "error_code": "CREATE_FAILED",
                 "data": {"message": str(e)}
             }
     
@@ -417,20 +403,14 @@ class ReportService:
             comprehensive: If True, process ALL stores with data normalization
         """
         try:
-            logger.info(f"Starting actual report generation for {report_id} (comprehensive={comprehensive})")
+            logger.info(f"Starting actual report generation for {report_id} - ALWAYS FULL BATCH")
             
-            if comprehensive:
-                # Use comprehensive service for ALL stores with normalization
-                result = self.comprehensive_service.generate_comprehensive_report(report_id)
-            else:
-                # Use limited service for testing
-                result = self.minute_index_service.generate_store_report(report_id, 100)
+            # ALWAYS use minute-index service for ALL stores (comprehensive processing)
+            result = self.minute_index_service.generate_store_report(report_id, max_stores=50000)
             
             if result["success"]:
-                if comprehensive:
-                    logger.info(f"Comprehensive report {report_id}: {result['successfully_processed']}/{result['total_unique_stores']} stores")
-                else:
-                    logger.info(f"Report {report_id} generated: {result['total_stores']} stores")
+                total_stores = result["total_stores"]
+                logger.info(f"Report {report_id} generated: {total_stores} stores (FULL BATCH)")
                 
                 # The file path is the URL we want to store
                 file_url = f"file://{result['file_path']}"
@@ -442,10 +422,10 @@ class ReportService:
                     "success": True,
                     "report_id": report_id,
                     "url": file_url,
-                    "total_stores": result.get("total_unique_stores", result.get("total_stores", 0)),
-                    "successfully_processed": result.get("successfully_processed", result.get("total_stores", 0)),
+                    "total_stores": total_stores,
+                    "successfully_processed": total_stores,
                     "summary": result["summary"],
-                    "algorithm": result.get("algorithm", "Comprehensive Minute-Index")
+                    "algorithm": result.get("algorithm", "Minute-Index Algorithm")
                 }
             else:
                 logger.error(f"Report generation failed for {report_id}: {result.get('error')}")

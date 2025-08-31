@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Setup Reports Table in Neon Database
+Setup Reports Table in Local PostgreSQL Database
 Creates reports table in raw schema with triggers and indexes
 """
 
@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Database connection string
-DB_URL = "postgresql://neondb_owner:npg_HNBZ6c8dUnuC@ep-fragrant-snow-a1gvjf6b-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DB_URL = "postgresql://localhost/store_monitoring"
 
 def setup_reports_table(cursor):
     """Setup the raw.reports table with all features"""
@@ -112,7 +112,7 @@ def main():
     
     try:
         # Connect to database
-        logger.info("Connecting to Neon database...")
+        logger.info("Connecting to local PostgreSQL database...")
         conn = psycopg2.connect(DB_URL)
         conn.autocommit = False
         cursor = conn.cursor()
