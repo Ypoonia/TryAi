@@ -31,14 +31,14 @@ class ReportController:
         self.db = db
         self.service = ReportService(db)
     
-    def trigger_report(self) -> ReportResponse:
+    def trigger_report(self, comprehensive: bool = False) -> ReportResponse:
         """
         Controller: Handle report trigger request
         Validates business rules and returns appropriate response
         """
         try:
             # Call service layer for business logic
-            result = self.service.create_new_report()
+            result = self.service.create_new_report(comprehensive)
             
             if not result["success"]:
                 # Handle different error scenarios

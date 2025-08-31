@@ -27,9 +27,15 @@ def get_report_controller(db: Session = Depends(get_db)) -> ReportController:
 
 
 @router.post("/trigger", response_model=ReportResponse, summary="Trigger new report", status_code=202)
-def trigger_report(controller: ReportController = Depends(get_report_controller)):
+def trigger_report(
+    comprehensive: bool = False,
+    controller: ReportController = Depends(get_report_controller)
+):
     """
     Trigger a new report generation
+    
+    **Parameters:**
+    - comprehensive: If True, process ALL stores (~4500 stores). If False, process 100 stores for testing.
     
     **Business Rules:**
     - Only one PENDING report allowed at a time
@@ -39,11 +45,20 @@ def trigger_report(controller: ReportController = Depends(get_report_controller)
     **Returns:**
     - 202: {report_id, status:"RUNNING"}
     
+    **Examples:**
+    ```bash
+    # Test with 100 stores
+    curl -X POST "http://localhost:8001/reports/trigger"
+    
+    # Full batch with all stores
+    curl -X POST "http://localhost:8001/reports/trigger?comprehensive=true"
+    ```
+    
     **Errors:**
     - 409: PENDING/RUNNING report already exists (with existing report_id)
     - 500: Internal server error
     """
-    return controller.trigger_report()
+    return controller.trigger_report(comprehensive)
 
 
 @router.get("/status", response_model=ReportStatusResponse, summary="Get report status")

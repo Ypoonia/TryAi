@@ -12,11 +12,7 @@ class Settings(BaseSettings):
     """Application settings"""
     
     # Database configuration
-    DATABASE_URL: str = (
-        "postgresql://neondb_owner:npg_HNBZ6c8dUnuC@"
-        "ep-fragrant-snow-a1gvjf6b-pooler.ap-southeast-1.aws.neon.tech/"
-        "neondb?sslmode=require"
-    )
+    DATABASE_URL: str = "postgresql://localhost/store_monitoring"
     
     # Server configuration
     SERVER_HOST: str = "0.0.0.0"

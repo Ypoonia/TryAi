@@ -17,9 +17,13 @@ logger = logging.getLogger(__name__)
 
 
 @celery_app.task(bind=True, name="app.tasks.report_tasks.generate_report")
-def generate_report(self, report_id: str):
+def generate_report(self, report_id: str, max_stores: int = 50000):
     """
     Celery task to generate store monitoring report asynchronously
+    
+    Args:
+        report_id: Unique report identifier
+        max_stores: Maximum number of stores to process (use 10000 for full batch)
     
     Flow:
     1. Mark report as RUNNING
@@ -40,9 +44,9 @@ def generate_report(self, report_id: str):
         ReportCRUD.update_report_status(db, report_id, "RUNNING")
         
         # Step 2: Generate report
-        logger.info(f"Generating report {report_id}")
+        logger.info(f"Generating report {report_id} with max_stores={max_stores}")
         service = MinuteIndexReportService(db)
-        result = service.generate_store_report(report_id, max_stores=100)
+        result = service.generate_store_report(report_id, max_stores=max_stores)
         
         if result["success"]:
             # Step 3: Mark report as COMPLETE with file path
