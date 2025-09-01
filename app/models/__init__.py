@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-"""Models for Store Monitoring System"""
-
 from app.models.base import (
     Base, 
     engine, 
@@ -13,7 +10,7 @@ from app.models.base import (
 )
 from app.models.report import Report
 
-# Legacy alias
+
 create_tables = create_all_tables
 
 __all__ = [
