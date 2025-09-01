@@ -1,570 +1,383 @@
 import json
 import csv
-import os
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Tuple, Union
+from datetime import datetime, timedelta, time
+from typing import Dict, List, Any, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 import logging
 from pathlib import Path
 import pytz
-from collections import defaultdict
-
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 class MinuteIndexReportService:
-    
     def __init__(self, db: Session):
         self.db = db
         self.reports_dir = Path("reports")
         self.reports_dir.mkdir(exist_ok=True)
-    
+
     def generate_store_report(self, report_id: str, max_stores: int = 100) -> Dict[str, Any]:
         try:
             logger.info(f"Starting minute-index report generation for {report_id}")
-            
-            max_utc = self._get_max_timestamp_utc()
+            max_utc = self._max_utc()
             logger.info(f"MAX_UTC: {max_utc}")
-            
-            stores_data = self._get_stores_for_processing(max_stores)
-            logger.info(f"Processing {len(stores_data)} stores")
-            
-            report_data = []
-            
-            for store_info in stores_data:
-                store_id = store_info['store_id']
-                tz_str = store_info['timezone_str']
-                
+            stores = self._stores(max_stores)
+            logger.info(f"Processing {len(stores)} stores")
+
+            rows = []
+            for s in stores:
+                store_id = s["store_id"]
+                tz_str = s["timezone_str"]
                 logger.debug(f"Processing store {store_id} in timezone {tz_str}")
-                
                 try:
-                    store_metrics = self._process_store_with_minute_index(
-                        store_id, tz_str, max_utc
-                    )
-                    if store_metrics:
-                        report_data.append(store_metrics)
+                    r = self._proc_store(store_id, tz_str, max_utc)
+                    if r:
+                        rows.append(r)
                 except Exception as e:
                     logger.error(f"Error processing store {store_id}: {e}")
                     continue
-            
-            self._save_report_json(report_id, report_data, max_utc)
-            
-            report_file_path = self._save_report_csv(report_id, report_data, max_utc)
-            
-            summary = self._generate_report_summary(report_data)
-            
-            logger.info(f"Minute-index report completed for {report_id}: {len(report_data)} stores")
-            
+
+            self._save_json(report_id, rows, max_utc)
+            csv_path = self._save_csv(report_id, rows, max_utc)
+            summary = self._summary(rows)
+            logger.info(f"Minute-index report completed for {report_id}: {len(rows)} stores")
+
             return {
                 "success": True,
                 "report_id": report_id,
-                "total_stores": len(report_data),
-                "file_path": str(report_file_path),
+                "total_stores": len(rows),
+                "file_path": str(csv_path),
                 "summary": summary,
                 "generated_at": datetime.utcnow().isoformat(),
                 "max_utc": max_utc.isoformat(),
-                "algorithm": "Carry-Forward (Seed-Before) Interval Sweep"
+                "algorithm": "Carry-Forward (Seed-Before) Interval Sweep",
             }
-            
         except Exception as e:
             logger.error(f"Error generating minute-index report {report_id}: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "report_id": report_id
-            }
-    
-    def _get_max_timestamp_utc(self) -> datetime:
-        
-        query = text("SELECT MAX(timestamp_utc) FROM raw.store_status")
-        result = self.db.execute(query).fetchone()
-        
-        max_timestamp_str = result[0]
-        if max_timestamp_str is None:
+            return {"success": False, "error": str(e), "report_id": report_id}
+
+    def _max_utc(self) -> datetime:
+        q = text("SELECT MAX(timestamp_utc) FROM raw.store_status")
+        r = self.db.execute(q).fetchone()
+        v = r[0]
+        if v is None:
             raise ValueError("raw.store_status is empty; no MAX(timestamp_utc)")
-            
-        if isinstance(max_timestamp_str, str):
-            max_timestamp_str = max_timestamp_str.replace(' UTC', '')
-            max_utc = datetime.fromisoformat(max_timestamp_str)
+        if isinstance(v, str):
+            v = v.replace(" UTC", "")
+            dt = datetime.fromisoformat(v)
         else:
-            max_utc = result[0]
-        
-        if max_utc.tzinfo is None:
-            max_utc = pytz.UTC.localize(max_utc)
-        
-        return max_utc
-    
-    def _get_stores_for_processing(self, max_stores: int) -> List[Dict[str, Any]]:
-        
-        query = text("""
+            dt = v
+        if dt.tzinfo is None:
+            dt = pytz.UTC.localize(dt)
+        return dt
+
+    def _stores(self, limit: int) -> List[Dict[str, Any]]:
+        q = text(
+            """
             SELECT DISTINCT 
                 s.store_id,
                 COALESCE(t.timezone_str, 'America/Chicago') as timezone_str
             FROM raw.store_status s
             LEFT JOIN raw.timezones t ON s.store_id = t.store_id
-            LIMIT :max_stores
-        """)
-        
-        result = self.db.execute(query, {"max_stores": max_stores}).fetchall()
-        
-        return [
-            {
-                "store_id": row[0],
-                "timezone_str": row[1]
-            }
-            for row in result
-        ]
-    
-    def _process_store_with_minute_index(self, store_id: str, tz_str: str, max_utc: datetime) -> Optional[Dict[str, Any]]:
-        
+            LIMIT :n
+            """
+        )
+        rows = self.db.execute(q, {"n": limit}).fetchall()
+        return [{"store_id": row[0], "timezone_str": row[1]} for row in rows]
+
+    def _proc_store(self, store_id: str, tz_str: str, max_utc: datetime) -> Optional[Dict[str, Any]]:
         try:
-            store_tz = pytz.timezone(tz_str or "America/Chicago")
+            tz = pytz.timezone(tz_str or "America/Chicago")
         except Exception:
             logger.warning(f"Invalid timezone '{tz_str}' for store {store_id}; using UTC")
-            store_tz = pytz.UTC
-        now_s_local = self._floor_minute(max_utc.astimezone(store_tz))
-        
-        logger.debug(f"Store {store_id}: NOW_s_local = {now_s_local} (local timezone: {tz_str})")
-        
-        # Define bands (half-open index ranges)
-        H = (1, 61)      # Hour: [1, 61) = 60 minutes
-        D = (1, 1441)    # Day: [1, 1441) = 1440 minutes 
-        W = (1, 10081)   # Week: [1, 10081) = 10080 minutes
-        
-        # Step 1: Load & normalize polls (using local timezone)
-        polls_normalized = self._load_and_normalize_polls(store_id, store_tz, now_s_local)
-        
-        if not polls_normalized:
+            tz = pytz.UTC
+        now_local = self._floor_min(max_utc.astimezone(tz))
+        logger.debug(f"Store {store_id}: NOW_s_local = {now_local} (local timezone: {tz_str})")
+
+        H = (1, 61)
+        D = (1, 1441)
+        W = (1, 10081)
+
+        polls = self._load_polls(store_id, tz, now_local)
+        if not polls:
             logger.debug(f"Store {store_id}: No polls found, excluding")
             return None
-        
-        # Step 2: Build BH intervals (using local timezone)
-        bh_intervals = self._build_bh_intervals(store_id, store_tz, now_s_local)
-        
-        # Calculate BH budgets
-        B_H = sum(self._overlap_len(interval, H) for interval in bh_intervals)
-        B_D = sum(self._overlap_len(interval, D) for interval in bh_intervals)
-        B_W = sum(self._overlap_len(interval, W) for interval in bh_intervals)
-        
+
+        bh = self._build_bh(store_id, tz, now_local)
+        B_H = sum(self._overlap(b, H) for b in bh)
+        B_D = sum(self._overlap(b, D) for b in bh)
+        B_W = sum(self._overlap(b, W) for b in bh)
         logger.debug(f"Store {store_id}: BH budgets H={B_H}, D={B_D}, W={B_W}")
-        
-        # Step 3: Build status spans with pure carry-forward logic
-        status_spans = self._build_status_spans_carry_forward(polls_normalized, W)
-        
-        # Step 4: Two-pointer sweep
-        U_H, U_D, U_W = self._two_pointer_sweep(bh_intervals, status_spans, H, D, W)
-        
-        # Step 5: Final clamps & convert to output format
+
+        spans = self._spans(polls, W)
+        U_H, U_D, U_W = self._sweep(bh, spans, H, D, W)
+
         U_H = self._clamp(U_H, 0, B_H)
-        U_D = self._clamp(U_D, 0, B_D) 
+        U_D = self._clamp(U_D, 0, B_D)
         U_W = self._clamp(U_W, 0, B_W)
-        
         D_H = B_H - U_H
         D_D = B_D - U_D
         D_W = B_W - U_W
-        
-        # Verify invariants
-        assert abs((U_H + D_H) - B_H) < 1e-9, f"Hour invariant failed: {U_H} + {D_H} != {B_H}"
-        assert abs((U_D + D_D) - B_D) < 1e-9, f"Day invariant failed: {U_D} + {D_D} != {B_D}"
-        assert abs((U_W + D_W) - B_W) < 1e-9, f"Week invariant failed: {U_W} + {D_W} != {B_W}"
-        
+
+        assert abs((U_H + D_H) - B_H) < 1e-9
+        assert abs((U_D + D_D) - B_D) < 1e-9
+        assert abs((U_W + D_W) - B_W) < 1e-9
+
         return {
             "store_id": store_id,
-            "uptime_last_hour": U_H,              # minutes
-            "uptime_last_day": U_D / 60.0,        # hours
-            "uptime_last_week": U_W / 60.0,       # hours
-            "downtime_last_hour": D_H,            # minutes
-            "downtime_last_day": D_D / 60.0,      # hours
-            "downtime_last_week": D_W / 60.0,     # hours
+            "uptime_last_hour": U_H,
+            "uptime_last_day": U_D / 60.0,
+            "uptime_last_week": U_W / 60.0,
+            "downtime_last_hour": D_H,
+            "downtime_last_day": D_D / 60.0,
+            "downtime_last_week": D_W / 60.0,
             "timezone": tz_str,
-            "now_s": now_s_local.isoformat(),
+            "now_s": now_local.isoformat(),
             "algorithm_details": {
-                "total_polls": len(polls_normalized),
-                "bh_intervals_count": len(bh_intervals),
-                "status_spans_count": len(status_spans),
+                "total_polls": len(polls),
+                "bh_intervals_count": len(bh),
+                "status_spans_count": len(spans),
                 "bh_budgets": {"H": B_H, "D": B_D, "W": B_W},
-                "raw_uptimes": {"H": U_H, "D": U_D, "W": U_W}
-            }
+                "raw_uptimes": {"H": U_H, "D": U_D, "W": U_W},
+            },
         }
-    
-    # Helper Primitives
-    
-    def _floor_minute(self, dt: datetime) -> datetime:
-        """Floor datetime to minute boundary"""
+
+    def _floor_min(self, dt: datetime) -> datetime:
         return dt.replace(second=0, microsecond=0)
-    
-    def _ceil_minute(self, dt: datetime) -> datetime:
-        """Ceiling to next minute boundary (for inclusive BH end times)"""
+
+    def _ceil_min(self, dt: datetime) -> datetime:
         if dt.second == 0 and dt.microsecond == 0:
             return dt
         return (dt + timedelta(minutes=1)).replace(second=0, microsecond=0)
-    
-    def _minute_index(self, dt_local: datetime, now_s_local: datetime) -> int:
-        """Map local datetime dt_local (floored to minute) to index k
-        Both dt_local and now_s_local MUST be tz-aware in the SAME timezone"""
-        delta_minutes = (now_s_local - dt_local).total_seconds() / 60.0
-        return max(1, int(delta_minutes) + 1)
-    
-    def _overlap_len(self, interval1: Tuple[int, int], interval2: Tuple[int, int]) -> int:
-        """Calculate overlap length between two half-open intervals [a,b) and [x,y)"""
-        a, b = interval1
-        x, y = interval2
-        return max(0, min(b, y) - max(a, x))
-    
-    def _clamp(self, value: float, lo: float, hi: float) -> float:
-        """Clamp value between lo and hi"""
-        return max(lo, min(hi, value))
-    
-    def _localize_safe(self, tz, dt):
-        """DST-safe timezone localization"""
+
+    def _idx(self, dt_local: datetime, now_local: datetime) -> int:
+        d = (now_local - dt_local).total_seconds() / 60.0
+        return max(1, int(d) + 1)
+
+    def _overlap(self, a: Tuple[int, int], b: Tuple[int, int]) -> int:
+        x1, x2 = a
+        y1, y2 = b
+        return max(0, min(x2, y2) - max(x1, y1))
+
+    def _clamp(self, v: float, lo: float, hi: float) -> float:
+        return max(lo, min(hi, v))
+
+    def _tzloc(self, tz, dt):
         try:
             return tz.localize(dt, is_dst=None)
         except pytz.AmbiguousTimeError:
             return tz.localize(dt, is_dst=True)
         except pytz.NonExistentTimeError:
             return tz.localize(dt + timedelta(hours=1), is_dst=True)
-    
-    # Step 1: Load & Normalize Polls
-    
-    def _load_and_normalize_polls(self, store_id: str, store_tz: Optional[pytz.BaseTzInfo], now_s_local: datetime) -> List[Tuple[int, str]]:
-        """
-        Load and normalize polls for the store
-        Returns list of (minute_index, status) sorted by minute_index
-        """
-        
-        # Calculate left boundary with buffer (local timezone)
-        left_buf_minutes = 1440  # 1 day buffer
-        left_dt_local = now_s_local - timedelta(minutes=10080 + left_buf_minutes)
-        # left_dt_local is already timezone-aware, just convert to UTC
-        left_dt_utc = left_dt_local.astimezone(pytz.UTC)
-        
-        query = text("""
+
+    def _load_polls(self, store_id: str, tz: Optional[pytz.BaseTzInfo], now_local: datetime) -> List[Tuple[int, str]]:
+        left = now_local - timedelta(minutes=10080 + 1440)
+        left_utc = left.astimezone(pytz.UTC)
+        q = text(
+            """
             SELECT timestamp_utc, status
             FROM raw.store_status
-            WHERE store_id = :store_id
-              AND timestamp_utc >= :left_dt_utc
+            WHERE store_id = :sid
+              AND timestamp_utc >= :left_utc
             ORDER BY timestamp_utc ASC
-        """)
-        
-        result = self.db.execute(query, {
-            "store_id": store_id,
-            "left_dt_utc": left_dt_utc.strftime("%Y-%m-%d %H:%M:%S")
-        }).fetchall()
-        
-        # Normalize polls: convert to local, floor to minute, deduplicate
-        minute_polls = {}  # minute_index -> (latest_timestamp_utc, status)
-        
-        for row in result:
-            timestamp_utc_str = row[0]
-            status = row[1]
-            
-            # Parse timestamp (UTC) and ensure timezone-aware
-            if isinstance(timestamp_utc_str, str):
-                timestamp_utc_str = timestamp_utc_str.replace(' UTC', '')
-                timestamp_utc = datetime.fromisoformat(timestamp_utc_str)
-                if timestamp_utc.tzinfo is None:
-                    timestamp_utc = pytz.UTC.localize(timestamp_utc)
+            """
+        )
+        rows = self.db.execute(q, {"sid": store_id, "left_utc": left_utc.strftime("%Y-%m-%d %H:%M:%S")}).fetchall()
+
+        per_min = {}
+        for t_utc, s in rows:
+            if isinstance(t_utc, str):
+                t_utc = t_utc.replace(" UTC", "")
+                t = datetime.fromisoformat(t_utc)
+                if t.tzinfo is None:
+                    t = pytz.UTC.localize(t)
             else:
-                timestamp_utc = timestamp_utc_str
-                if timestamp_utc.tzinfo is None:
-                    timestamp_utc = pytz.UTC.localize(timestamp_utc)
-            
-            # Convert to local timezone (both dt_local and now_s_local are tz-aware in same tz)
-            dt_local = timestamp_utc.astimezone(store_tz)
-            dt_local_floored = self._floor_minute(dt_local)
-            
-            # Calculate minute index with both timezone-aware datetimes
-            minute_index = self._minute_index(dt_local_floored, now_s_local)
-            
-            # Map status to active/inactive
-            norm_status = self._map_to_active_inactive(status)
-            if norm_status is None:
-                continue  # Skip unknown statuses
-            
-            # Keep latest timestamp for this minute
-            if minute_index not in minute_polls or timestamp_utc > minute_polls[minute_index][0]:
-                minute_polls[minute_index] = (timestamp_utc, norm_status)
-        
-        # Keep all polls within buffer range (don't filter out pre-window polls for seeding)
-        polls_normalized = []
-        for minute_index, (_, status) in minute_polls.items():
-            polls_normalized.append((minute_index, status))
-        
-        # Sort descending by index: larger index = older timestamp (chronological order)
-        polls_normalized.sort(key=lambda x: x[0], reverse=True)
-        
-        logger.debug(f"Store {store_id}: Normalized {len(polls_normalized)} polls")
-        return polls_normalized
-    
-    def _map_to_active_inactive(self, status: str) -> Optional[str]:
-        """Map status to active/inactive, return None for unknown"""
-        status_lower = status.lower().strip()
-        if status_lower == 'active':
-            return 'active'
-        elif status_lower == 'inactive':
-            return 'inactive'
-        else:
-            return None  # Drop unknown statuses
-    
-    # Step 2: Build BH Intervals
-    
-    def _build_bh_intervals(self, store_id: str, store_tz: Optional[pytz.BaseTzInfo], now_s_local: datetime) -> List[Tuple[int, int]]:
-        """
-        Build business hours intervals on local calendar days (IANA tz)
-        """
-        
-        # Get menu hours
-        query = text("""
-            SELECT "dayOfWeek", start_time_local, end_time_local
-            FROM raw.menu_hours
-            WHERE store_id = :store_id
-            ORDER BY "dayOfWeek", start_time_local
-        """)
-        
-        result = self.db.execute(query, {"store_id": store_id}).fetchall()
-        
-        if not result:
-            # No business hours found, assume 24/7
-            return [(1, 10081)]
-        
-        # Build business hours by day
-        bh_by_day = {}
-        for row in result:
-            day_of_week = int(row[0])
-            start_time_str = row[1] 
-            end_time_str = row[2]
-            if day_of_week not in bh_by_day:
-                bh_by_day[day_of_week] = []
-            bh_by_day[day_of_week].append((start_time_str, end_time_str))
-        
-        bh_intervals = []
-        
-        # Iterate LOCAL midnights in store timezone (not UTC days)
-        # Cover 8 days before to 1 day after to ensure full coverage
-        start_date = (now_s_local - timedelta(days=8)).date()
-        end_date = (now_s_local + timedelta(days=1)).date()
-        
-        current_date = start_date
-        while current_date <= end_date:
-            # Local midnight in store timezone
-            local_midnight = datetime.combine(current_date, datetime.min.time())
-            if store_tz:
-                local_midnight = self._localize_safe(store_tz, local_midnight)
-            
-            weekday = current_date.weekday()  # 0=Mon..6=Sun
-            
-            # Get business hours for this local day
-            if weekday in bh_by_day:
-                for start_time_str, end_time_str in bh_by_day[weekday]:
-                    start_time = self._parse_time_str(start_time_str)
-                    end_time = self._parse_time_str(end_time_str)
-                    
-                    # Create local datetime objects (tz-aware)
-                    start_dt_local = datetime.combine(current_date, start_time)
-                    end_dt_local = datetime.combine(current_date, end_time)
-                    
-                    if store_tz:
-                        start_dt_local = self._localize_safe(store_tz, start_dt_local)
-                        end_dt_local = self._localize_safe(store_tz, end_dt_local)
-                    
-                    # Handle overnight business hours (end < start)
-                    if end_time <= start_time:
-                        # Split overnight: two segments
-                        # Segment 1: start_time to end of day
-                        end_of_day = datetime.combine(current_date, datetime.max.time().replace(microsecond=0))
-                        if store_tz:
-                            end_of_day = self._localize_safe(store_tz, end_of_day)
-                        
-                        idx_start1 = self._minute_index(self._floor_minute(start_dt_local), now_s_local)
-                        idx_end1 = self._minute_index(self._ceil_minute(end_of_day), now_s_local)
-                        if idx_start1 > idx_end1:  # Valid interval (indices count backwards)
-                            bh_intervals.append((idx_end1, idx_start1))
-                        
-                        # Segment 2: start of next day to end_time
-                        next_date = current_date + timedelta(days=1)
-                        start_of_next_day = datetime.combine(next_date, datetime.min.time())
-                        end_dt_next = datetime.combine(next_date, end_time)
-                        
-                        if store_tz:
-                            start_of_next_day = self._localize_safe(store_tz, start_of_next_day)
-                            end_dt_next = self._localize_safe(store_tz, end_dt_next)
-                        
-                        idx_start2 = self._minute_index(self._floor_minute(start_of_next_day), now_s_local)
-                        idx_end2 = self._minute_index(self._ceil_minute(end_dt_next), now_s_local)
-                        if idx_start2 > idx_end2:  # Valid interval
-                            bh_intervals.append((idx_end2, idx_start2))
-                    else:
-                        # Normal hours within same day
-                        idx_start = self._minute_index(self._floor_minute(start_dt_local), now_s_local)
-                        idx_end = self._minute_index(self._ceil_minute(end_dt_local), now_s_local)
-                        if idx_start > idx_end:  # Valid interval (indices count backwards)
-                            bh_intervals.append((idx_end, idx_start))
-            
-            current_date += timedelta(days=1)
-        
-        # Sort and merge overlapping intervals
-        bh_intervals.sort()
-        bh_intervals = self._merge_sorted_intervals(bh_intervals)
-        
-        logger.debug(f"Store {store_id}: Built {len(bh_intervals)} BH intervals")
-        return bh_intervals
-    
-    def _parse_time_str(self, time_str: str) -> datetime.time:
-        """Parse time string like '09:00:00'"""
-        try:
-            from datetime import time
-            # Use time.fromisoformat for proper parsing
-            if len(time_str.split(':')) == 2:
-                time_str += ':00'  # Add seconds if missing
-            return time.fromisoformat(time_str)
-        except:
-            # Fallback: manual parsing
-            try:
-                parts = time_str.split(':')
-                hour = int(parts[0])
-                minute = int(parts[1])
-                second = int(parts[2]) if len(parts) > 2 else 0
-                from datetime import time
-                return time(hour, minute, second)
-            except:
-                from datetime import time
-                return time(0, 0, 0)  # Default to start of day
-    
-    def _merge_sorted_intervals(self, intervals: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
-        """Merge overlapping/adjacent sorted intervals"""
-        if not intervals:
-            return []
-        
-        intervals.sort()
-        merged = [intervals[0]]
-        
-        for start, end in intervals[1:]:
-            last_start, last_end = merged[-1]
-            
-            if start <= last_end:  # Overlapping or adjacent
-                merged[-1] = (last_start, max(last_end, end))
-            else:
-                merged.append((start, end))
-        
-        return merged
-    
-    # Step 3: Build Status Spans
-    
-    def _build_status_spans_carry_forward(self, polls_idx: List[Tuple[int,str]], W: Tuple[int,int]) -> List[Tuple[int,int,str]]:
-        """
-        Pure carry-forward + seed-before timeline (no midpoint, no 23:00)
-        polls_idx: (k, status) where k is minute index vs now_s_local
-        """
-        if not polls_idx:
-            return [(W[0], W[1], 'inactive')]
-        
-        # seed = last poll at or BEFORE band start (k >= 10080)
-        start_k = W[1]-1  # 10080
-        seed_status = 'inactive'  # fallback
-        
-        candidates = [(k, s) for (k, s) in polls_idx if k >= start_k]
-        if candidates:
-            seed_status = min(candidates, key=lambda x: x[0])[1]  # nearest pre-window
-        else:
-            in_window = [(k, s) for (k, s) in polls_idx if W[0] <= k < W[1]]
-            if in_window:
-                seed_status = min(in_window, key=lambda x: x[0])[1]  # earliest inside
-                
-        # window polls (ascending k makes sense if you always create (min,max))
-        window_polls = [(k,s) for (k,s) in polls_idx if W[0] <= k < W[1]]
-        if not window_polls:
-            return [(W[0], W[1], seed_status)]
-            
-        spans = []
-        prev_k = start_k
-        prev_s = seed_status
-    
-        # Iterate from window start toward now: use DESCENDING k for clarity
-        for k, s in sorted(window_polls, key=lambda x: -x[0]):
-            # segment between [k, prev_k) has status = prev_s (carry-forward)
-            a, b = sorted((k, prev_k))
-            if a < b:
-                spans.append((a, b, prev_s))
-            prev_k, prev_s = k, s
-    
-        # Tail to the window end (k=1)
-        a, b = sorted((W[0], prev_k))
-        if a < b:
-            spans.append((a, b, prev_s))
-    
-        # Merge adjacents
-        out = []
-        for st, en, stt in sorted(spans):
-            if out and out[-1][2] == stt and out[-1][1] == st:
-                out[-1] = (out[-1][0], en, stt)
-            else:
-                out.append((st, en, stt))
+                t = t_utc
+                if t.tzinfo is None:
+                    t = pytz.UTC.localize(t)
+            lt = t.astimezone(tz)
+            lt = self._floor_min(lt)
+            k = self._idx(lt, now_local)
+            m = self._map_status(s)
+            if m is None:
+                continue
+            if k not in per_min or t > per_min[k][0]:
+                per_min[k] = (t, m)
+
+        out = [(k, v[1]) for k, v in per_min.items()]
+        out.sort(key=lambda x: x[0], reverse=True)
+        logger.debug(f"Store {store_id}: Normalized {len(out)} polls")
         return out
 
-    def _two_pointer_sweep(self, bh_intervals: List[Tuple[int, int]], 
-                          status_spans: List[Tuple[int, int, str]],
-                          H: Tuple[int, int], D: Tuple[int, int], W: Tuple[int, int]) -> Tuple[float, float, float]:
-        """
-        Two-pointer sweep over BH × status spans
-        Returns (U_H, U_D, U_W) uptime minutes for each band
-        """
-        
+    def _map_status(self, s: str) -> Optional[str]:
+        v = s.lower().strip()
+        if v == "active":
+            return "active"
+        if v == "inactive":
+            return "inactive"
+        return None
+
+    def _build_bh(self, store_id: str, tz: Optional[pytz.BaseTzInfo], now_local: datetime) -> List[Tuple[int, int]]:
+        q = text(
+            """
+            SELECT "dayOfWeek", start_time_local, end_time_local
+            FROM raw.menu_hours
+            WHERE store_id = :sid
+            ORDER BY "dayOfWeek", start_time_local
+            """
+        )
+        rows = self.db.execute(q, {"sid": store_id}).fetchall()
+        if not rows:
+            return [(1, 10081)]
+
+        by_day: Dict[int, List[Tuple[str, str]]] = {}
+        for d, s, e in rows:
+            d = int(d)
+            by_day.setdefault(d, []).append((s, e))
+
+        ans: List[Tuple[int, int]] = []
+        start_date = (now_local - timedelta(days=8)).date()
+        end_date = (now_local + timedelta(days=1)).date()
+        cur = start_date
+        while cur <= end_date:
+            if tz:
+                midnight = self._tzloc(tz, datetime.combine(cur, time()))
+            else:
+                midnight = datetime.combine(cur, time())
+            weekday = cur.weekday()
+            if weekday in by_day:
+                for s_str, e_str in by_day[weekday]:
+                    s_t = self._parse_time(s_str)
+                    e_t = self._parse_time(e_str)
+                    s_dt = self._tzloc(tz, datetime.combine(cur, s_t)) if tz else datetime.combine(cur, s_t)
+                    e_dt = self._tzloc(tz, datetime.combine(cur, e_t)) if tz else datetime.combine(cur, e_t)
+                    if e_t <= s_t:
+                        eod = self._tzloc(tz, datetime.combine(cur, time(23, 59, 59))) if tz else datetime.combine(
+                            cur, time(23, 59, 59)
+                        )
+                        a = self._idx(self._floor_min(s_dt), now_local)
+                        b = self._idx(self._ceil_min(eod), now_local)
+                        if a > b:
+                            ans.append((b, a))
+                        nxt = cur + timedelta(days=1)
+                        sod = self._tzloc(tz, datetime.combine(nxt, time())) if tz else datetime.combine(nxt, time())
+                        e2 = self._tzloc(tz, datetime.combine(nxt, e_t)) if tz else datetime.combine(nxt, e_t)
+                        a2 = self._idx(self._floor_min(sod), now_local)
+                        b2 = self._idx(self._ceil_min(e2), now_local)
+                        if a2 > b2:
+                            ans.append((b2, a2))
+                    else:
+                        a = self._idx(self._floor_min(s_dt), now_local)
+                        b = self._idx(self._ceil_min(e_dt), now_local)
+                        if a > b:
+                            ans.append((b, a))
+            cur += timedelta(days=1)
+
+        ans.sort()
+        return self._merge(ans)
+
+    def _parse_time(self, s: str) -> time:
+        try:
+            if len(s.split(":")) == 2:
+                s += ":00"
+            return time.fromisoformat(s)
+        except Exception:
+            try:
+                p = s.split(":")
+                h = int(p[0])
+                m = int(p[1])
+                sec = int(p[2]) if len(p) > 2 else 0
+                return time(h, m, sec)
+            except Exception:
+                return time(0, 0, 0)
+
+    def _merge(self, ivals: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+        if not ivals:
+            return []
+        ivals.sort()
+        out = [ivals[0]]
+        for s, e in ivals[1:]:
+            ls, le = out[-1]
+            if s <= le:
+                out[-1] = (ls, max(le, e))
+            else:
+                out.append((s, e))
+        return out
+
+    def _spans(self, polls: List[Tuple[int, str]], W: Tuple[int, int]) -> List[Tuple[int, int, str]]:
+        if not polls:
+            return [(W[0], W[1], "inactive")]
+        start_k = W[1] - 1
+        seed = "inactive"
+        pre = [(k, s) for (k, s) in polls if k >= start_k]
+        if pre:
+            seed = min(pre, key=lambda x: x[0])[1]
+        else:
+            inside = [(k, s) for (k, s) in polls if W[0] <= k < W[1]]
+            if inside:
+                seed = min(inside, key=lambda x: x[0])[1]
+        win = [(k, s) for (k, s) in polls if W[0] <= k < W[1]]
+        if not win:
+            return [(W[0], W[1], seed)]
+        segs = []
+        prev_k = start_k
+        prev_s = seed
+        for k, s in sorted(win, key=lambda x: -x[0]):
+            a, b = sorted((k, prev_k))
+            if a < b:
+                segs.append((a, b, prev_s))
+            prev_k, prev_s = k, s
+        a, b = sorted((W[0], prev_k))
+        if a < b:
+            segs.append((a, b, prev_s))
+        out: List[Tuple[int, int, str]] = []
+        for s1, e1, st in sorted(segs):
+            if out and out[-1][2] == st and out[-1][1] == s1:
+                out[-1] = (out[-1][0], e1, st)
+            else:
+                out.append((s1, e1, st))
+        return out
+
+    def _sweep(
+        self,
+        bh: List[Tuple[int, int]],
+        spans: List[Tuple[int, int, str]],
+        H: Tuple[int, int],
+        D: Tuple[int, int],
+        W: Tuple[int, int],
+    ) -> Tuple[float, float, float]:
         U_H = U_D = U_W = 0.0
-        
         i = j = 0
-        while i < len(bh_intervals) and j < len(status_spans):
-            # Get current intervals
-            bh_start, bh_end = bh_intervals[i]
-            span_start, span_end, status = status_spans[j]
-            
-            # Calculate overlap
-            overlap_start = max(bh_start, span_start)
-            overlap_end = min(bh_end, span_end)
-            
-            if overlap_start < overlap_end:
-                # There's an overlap
-                overlap_interval = (overlap_start, overlap_end)
-                
-                # Calculate overlap with each band
-                oh = self._overlap_len(overlap_interval, H)
-                od = self._overlap_len(overlap_interval, D)
-                ow = self._overlap_len(overlap_interval, W)
-                
-                # Add to uptime if status is active
-                if status == 'active':
+        while i < len(bh) and j < len(spans):
+            bs, be = bh[i]
+            ss, se, st = spans[j]
+            s = max(bs, ss)
+            e = min(be, se)
+            if s < e:
+                iv = (s, e)
+                oh = self._overlap(iv, H)
+                od = self._overlap(iv, D)
+                ow = self._overlap(iv, W)
+                if st == "active":
                     U_H += oh
                     U_D += od
                     U_W += ow
-            
-            # Advance pointer that finishes first
-            if bh_end <= span_end:
+            if be <= se:
                 i += 1
-            if span_end <= bh_end:
+            if se <= be:
                 j += 1
-        
         return U_H, U_D, U_W
-    
-    # Output and Summary
-    
-    def _save_report_json(self, report_id: str, report_data: List[Dict], max_utc: datetime) -> Path:
-        """Save the report as JSON file"""
-        
-        report_file = self.reports_dir / f"{report_id}.json"
-        
-        full_report = {
+
+    def _save_json(self, report_id: str, rows: List[Dict], max_utc: datetime) -> Path:
+        path = self.reports_dir / f"{report_id}.json"
+        payload = {
             "report_metadata": {
                 "report_id": report_id,
                 "generated_at": datetime.utcnow().isoformat(),
-                "total_stores": len(report_data),
+                "total_stores": len(rows),
                 "max_utc": max_utc.isoformat(),
                 "algorithm": "Carry-Forward (Seed-Before) Interval Sweep",
-                "bands": {
-                    "H": "[1, 61) = 60 minutes (last hour)",
-                    "D": "[1, 1441) = 1440 minutes (last day)", 
-                    "W": "[1, 10081) = 10080 minutes (last week)"
-                },
+                "bands": {"H": "[1, 61)", "D": "[1, 1441)", "W": "[1, 10081)"},
                 "schema": [
                     "store_id",
                     "uptime_last_hour (minutes)",
@@ -572,33 +385,29 @@ class MinuteIndexReportService:
                     "uptime_last_week (hours)",
                     "downtime_last_hour (minutes)",
                     "downtime_last_day (hours)",
-                    "downtime_last_week (hours)"
-                ]
+                    "downtime_last_week (hours)",
+                ],
             },
-            "report_data": report_data,
+            "report_data": rows,
             "algorithm_details": {
                 "description": "Carry-forward logic with seed-before interpolation",
                 "features": [
-                    "Local minute index counting backwards from MAX_UTC",
-                    "Proper timezone conversion per store",
+                    "Local minute index",
+                    "Timezone conversion per store",
                     "Business hours as index intervals",
-                    "Carry-forward (seed-before) interpolation between status changes",
-                    "Two-pointer sweep for efficient intersection",
-                    "Invariant validation (uptime + downtime = business hours)"
-                ]
-            }
+                    "Carry-forward interpolation",
+                    "Two-pointer intersection",
+                    "Uptime+Downtime=Coverage invariants",
+                ],
+            },
         }
-        
-        with open(report_file, 'w', encoding='utf-8') as f:
-            json.dump(full_report, f, indent=2, default=str)
-        
-        logger.info(f"Minute-index report saved to {report_file}")
-        return report_file
-    
-    def _save_report_csv(self, report_id: str, report_data: List[Dict], max_utc: datetime) -> Path:
-        """Save the report as CSV file"""
-        report_file = self.reports_dir / f"{report_id}.csv"
-        
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, default=str)
+        logger.info(f"Minute-index report saved to {path}")
+        return path
+
+    def _save_csv(self, report_id: str, rows: List[Dict], max_utc: datetime) -> Path:
+        path = self.reports_dir / f"{report_id}.csv"
         header = [
             "store_id",
             "uptime_last_hour (minutes)",
@@ -606,73 +415,62 @@ class MinuteIndexReportService:
             "uptime_last_week (hours)",
             "downtime_last_hour (minutes)",
             "downtime_last_day (hours)",
-            "downtime_last_week (hours)"
+            "downtime_last_week (hours)",
         ]
-        
-        with open(report_file, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow(header)
-            for store in report_data:
-                writer.writerow([
-                    store["store_id"],
-                    store["uptime_last_hour"],
-                    round(store["uptime_last_day"], 2),
-                    round(store["uptime_last_week"], 2),
-                    store["downtime_last_hour"],
-                    round(store["downtime_last_day"], 2),
-                    round(store["downtime_last_week"], 2)
-                ])
-        
-        logger.info(f"Minute-index report saved to {report_file}")
-        return report_file
-    
-    def _generate_report_summary(self, report_data: List[Dict]) -> Dict[str, Any]:
-        """Generate summary statistics for the report"""
-        
-        if not report_data:
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            w.writerow(header)
+            for r in rows:
+                w.writerow(
+                    [
+                        r["store_id"],
+                        r["uptime_last_hour"],
+                        round(r["uptime_last_day"], 2),
+                        round(r["uptime_last_week"], 2),
+                        r["downtime_last_hour"],
+                        round(r["downtime_last_day"], 2),
+                        round(r["downtime_last_week"], 2),
+                    ]
+                )
+        logger.info(f"Minute-index report saved to {path}")
+        return path
+
+    def _summary(self, rows: List[Dict]) -> Dict[str, Any]:
+        if not rows:
             return {"message": "No data to summarize"}
-        
-        total_stores = len(report_data)
-        
-        # Calculate averages
-        avg_uptime_hour = sum(store["uptime_last_hour"] for store in report_data) / total_stores
-        avg_uptime_day = sum(store["uptime_last_day"] for store in report_data) / total_stores
-        avg_uptime_week = sum(store["uptime_last_week"] for store in report_data) / total_stores
-        
-        avg_downtime_hour = sum(store["downtime_last_hour"] for store in report_data) / total_stores
-        avg_downtime_day = sum(store["downtime_last_day"] for store in report_data) / total_stores
-        avg_downtime_week = sum(store["downtime_last_week"] for store in report_data) / total_stores
-        
-        # Calculate active/inactive counts (majority uptime)
-        active_stores_hour = sum(1 for store in report_data if store["uptime_last_hour"] > store["downtime_last_hour"])
-        active_stores_day = sum(1 for store in report_data if store["uptime_last_day"] > store["downtime_last_day"])
-        active_stores_week = sum(1 for store in report_data if store["uptime_last_week"] > store["downtime_last_week"])
-        
-        # Algorithm efficiency stats
-        total_polls = sum(store["algorithm_details"]["total_polls"] for store in report_data)
-        avg_polls_per_store = total_polls / total_stores if total_stores > 0 else 0
-        
+        n = len(rows)
+        avg_u_h = sum(r["uptime_last_hour"] for r in rows) / n
+        avg_u_d = sum(r["uptime_last_day"] for r in rows) / n
+        avg_u_w = sum(r["uptime_last_week"] for r in rows) / n
+        avg_d_h = sum(r["downtime_last_hour"] for r in rows) / n
+        avg_d_d = sum(r["downtime_last_day"] for r in rows) / n
+        avg_d_w = sum(r["downtime_last_week"] for r in rows) / n
+        act_h = sum(1 for r in rows if r["uptime_last_hour"] > r["downtime_last_hour"])
+        act_d = sum(1 for r in rows if r["uptime_last_day"] > r["downtime_last_day"])
+        act_w = sum(1 for r in rows if r["uptime_last_week"] > r["downtime_last_week"])
+        total_polls = sum(r["algorithm_details"]["total_polls"] for r in rows)
+        avg_polls = total_polls / n if n else 0
         return {
-            "total_stores": total_stores,
+            "total_stores": n,
             "algorithm": "Carry-Forward (Seed-Before) Interval Sweep",
             "averages": {
-                "uptime_last_hour_minutes": round(avg_uptime_hour, 2),
-                "uptime_last_day_hours": round(avg_uptime_day, 2),
-                "uptime_last_week_hours": round(avg_uptime_week, 2),
-                "downtime_last_hour_minutes": round(avg_downtime_hour, 2),
-                "downtime_last_day_hours": round(avg_downtime_day, 2),
-                "downtime_last_week_hours": round(avg_downtime_week, 2)
+                "uptime_last_hour_minutes": round(avg_u_h, 2),
+                "uptime_last_day_hours": round(avg_u_d, 2),
+                "uptime_last_week_hours": round(avg_u_w, 2),
+                "downtime_last_hour_minutes": round(avg_d_h, 2),
+                "downtime_last_day_hours": round(avg_d_d, 2),
+                "downtime_last_week_hours": round(avg_d_w, 2),
             },
             "active_stores": {
-                "last_hour": f"{active_stores_hour}/{total_stores} ({100*active_stores_hour/total_stores:.1f}%)",
-                "last_day": f"{active_stores_day}/{total_stores} ({100*active_stores_day/total_stores:.1f}%)",
-                "last_week": f"{active_stores_week}/{total_stores} ({100*active_stores_week/total_stores:.1f}%)"
+                "last_hour": f"{act_h}/{n} ({100*act_h/n:.1f}%)",
+                "last_day": f"{act_d}/{n} ({100*act_d/n:.1f}%)",
+                "last_week": f"{act_w}/{n} ({100*act_w/n:.1f}%)",
             },
             "efficiency": {
                 "total_polls_processed": total_polls,
-                "avg_polls_per_store": round(avg_polls_per_store, 1),
+                "avg_polls_per_store": round(avg_polls, 1),
                 "minute_level_precision": True,
                 "timezone_aware": True,
-                "carry_forward_seed_before": True
-            }
+                "carry_forward_seed_before": True,
+            },
         }
