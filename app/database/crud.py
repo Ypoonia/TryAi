@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-"""
-Repository (CRUD) operations for Report model with consistent behavior.
-- Returns domain objects on success.
-- Returns None only for "not found" lookups.
-- Raises on DB failures (so upper layers aren't forced to guess).
-"""
-
 from typing import Optional
 import logging
 
@@ -24,7 +16,6 @@ class RepositoryError(RuntimeError):
 
 
 class ReportCRUD:
-    """Repository for Report model"""
 
     def create_report(db: Session, report_id: str, status: ReportStatus = ReportStatus.PENDING) -> Report:
         try:
@@ -47,9 +38,6 @@ class ReportCRUD:
             raise RepositoryError(str(e)) from e
 
     def get_latest_active_report(db: Session) -> Optional[Report]:
-        """
-        Return most recent report with status in (PENDING, RUNNING).
-        """
         try:
             return (
                 db.query(Report)
@@ -83,13 +71,10 @@ class ReportCRUD:
             logger.exception("DB error updating report status/url")
             raise RepositoryError(str(e)) from e
 
-    # Legacy method names for compatibility with existing code
     def get_latest_pending_report(db: Session) -> Optional[Report]:
-        """Legacy alias for get_latest_active_report"""
         return ReportCRUD.get_latest_active_report(db)
 
     def update_report_status(db: Session, report_id: str, new_status: str) -> Optional[Report]:
-        """Legacy method - convert string status to enum"""
         try:
             status_enum = ReportStatus(new_status)
             return ReportCRUD.set_report_status_and_url(db, report_id, status_enum)
