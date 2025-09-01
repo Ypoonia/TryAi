@@ -9,7 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.celery_app import celery_app
-from app.services.minute_index_report_service import MinuteIndexReportService
+from app.services.compute_Algo import MinuteIndexReportService
 from app.database.crud import ReportCRUD
 from app.schemas.report import ReportStatus
 from app.core.config import settings

@@ -7,11 +7,8 @@ from app.schemas.report import (
     ReportResponse,
     ReportStatusResponse
 )
-from app.schemas.health import HealthResponse, ErrorResponse
 
 __all__ = [
     "ReportResponse",
-    "ReportStatusResponse",
-    "HealthResponse",
-    "ErrorResponse"
+    "ReportStatusResponse"
 ]

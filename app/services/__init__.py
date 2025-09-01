@@ -5,9 +5,7 @@ Business Logic Layer
 """
 
 from app.services.report_service import ReportService
-from app.services.health_service import HealthService
 
 __all__ = [
-    "ReportService",
-    "HealthService"
+    "ReportService"
 ]

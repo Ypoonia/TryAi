@@ -11,7 +11,6 @@ import logging
 from app.core.config import settings
 from app.models import create_tables
 from app.routes import reports_rcs
-from app.routes import health_rcs
 
 # Configure logging
 logging.basicConfig(
@@ -39,7 +38,6 @@ app.add_middleware(
 
 # Include routers with RCS architecture
 app.include_router(reports_rcs.router)
-app.include_router(health_rcs.router)
 
 
 @app.on_event("startup")
@@ -74,7 +72,6 @@ def root():
         "version": "4.0.0",
         "architecture": "Routes-Controller-Service (RCS)",
         "docs": "/docs",
-        "health": "/health/",
         "layers": {
             "routes": "HTTP request handling and validation",
             "controllers": "Request/response coordination and formatting", 
@@ -84,8 +81,7 @@ def root():
         },
         "endpoints": {
             "POST /reports/trigger_report": "Trigger new report generation",
-            "GET /reports/get_report?report_id=<id>": "Get report status and URL",
-            "GET /health/": "System health check"
+            "GET /reports/get_report?report_id=<id>": "Get report status and URL"
         },
         "api_notes": [
             "Uses 202 Accepted status for async report generation",
