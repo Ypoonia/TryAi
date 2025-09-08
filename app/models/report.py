@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-"""Report model for store monitoring system"""
-
 from datetime import datetime
 from sqlalchemy import Column, String, DateTime, Text, CheckConstraint
 from sqlalchemy.sql import func
@@ -8,7 +6,7 @@ from app.models.base import Base
 
 
 class Report(Base):
-    """Store monitoring report model"""
+ 
     
     __tablename__ = "reports"
     __table_args__ = (
