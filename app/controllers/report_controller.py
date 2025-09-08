@@ -12,7 +12,7 @@ from typing import Dict, Any
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.services.report_service import ReportService, ReportServiceError
+from app.services.report_service import ReportService, ReportNotFound, RepositoryError
 from app.schemas.report import ReportResponse, ReportStatusResponse
 
 logger = logging.getLogger(__name__)
@@ -28,38 +28,27 @@ class ReportController:
         Returns 202 for new reports, 200 for existing active reports.
         """
         try:
-            result = ReportService.trigger_report(db)
-            
-            # Determine HTTP status code
-            if result.message == "Report generation already in progress":
-                status_code = 200
-                headers = {"Retry-After": "30"}  # Check again in 30 seconds
-            else:
-                status_code = 202  # Accepted for processing
-                headers = {"Retry-After": "60"}  # Initial processing time estimate
+            service = ReportService(db)
+            report_id = service.trigger()
             
             logger.info(
                 "Report trigger endpoint response",
-                extra={
-                    "report_id": result.report_id,
-                    "status": result.status.value,
-                    "http_status": status_code,
-                },
+                extra={"report_id": report_id},
             )
             
             return {
-                "status_code": status_code,
-                "headers": headers,
-                "body": {
-                    "report_id": result.report_id,
-                    "status": result.status.value,
-                    "message": result.message,
-                },
+                "status_code": 202,  # Accepted for processing
+                "headers": {"Retry-After": "60"},  # Check again in 60 seconds
+                "body": ReportResponse(
+                    report_id=report_id,
+                    status="PENDING",
+                    message="Report generation started",
+                ),
             }
             
-        except ReportServiceError as e:
-            logger.error("Service error in trigger endpoint", extra={"error": str(e)})
-            raise HTTPException(status_code=500, detail=f"Service error: {e}")
+        except RepositoryError as e:
+            logger.error("Repository error in trigger endpoint", extra={"error": str(e)})
+            raise HTTPException(status_code=500, detail=f"Database error: {e}")
         except Exception as e:
             logger.exception("Unexpected error in trigger endpoint")
             raise HTTPException(status_code=500, detail="Internal server error")
@@ -75,45 +64,39 @@ class ReportController:
             if not report_id or not report_id.strip():
                 raise HTTPException(status_code=400, detail="Report ID is required")
             
-            result = ReportService.get_report_status(db, report_id.strip())
+            service = ReportService(db)
+            status, public_url = service.get_status_with_public_url(report_id.strip())
             
             # Set polling headers based on status
             headers = {}
-            if result.status.value in ["PENDING", "RUNNING"]:
+            if status == "Running":
                 headers["Retry-After"] = "15"  # Poll every 15 seconds for active reports
             
             logger.debug(
                 "Report status endpoint response",
                 extra={
                     "report_id": report_id,
-                    "status": result.status.value,
-                    "has_url": result.url is not None,
+                    "status": status,
+                    "has_url": public_url is not None,
                 },
             )
-            
-            # Build response body
-            body = {
-                "report_id": result.report_id,
-                "status": result.status.value,
-            }
-            
-            # Only include URL for completed reports
-            if result.url:
-                body["url"] = result.url
             
             return {
                 "status_code": 200,
                 "headers": headers,
-                "body": body,
+                "body": ReportStatusResponse(
+                    report_id=report_id,
+                    status=status,
+                    url=public_url,
+                ),
             }
             
-        except ReportServiceError as e:
-            if "not found" in str(e).lower():
-                logger.warning("Report not found", extra={"report_id": report_id})
-                raise HTTPException(status_code=404, detail=f"Report {report_id} not found")
-            else:
-                logger.error("Service error in status endpoint", extra={"error": str(e)})
-                raise HTTPException(status_code=500, detail=f"Service error: {e}")
+        except ReportNotFound:
+            logger.warning("Report not found", extra={"report_id": report_id})
+            raise HTTPException(status_code=404, detail=f"Report {report_id} not found")
+        except RepositoryError as e:
+            logger.error("Repository error in status endpoint", extra={"error": str(e)})
+            raise HTTPException(status_code=500, detail=f"Database error: {e}")
         except Exception as e:
             logger.exception("Unexpected error in status endpoint")
             raise HTTPException(status_code=500, detail="Internal server error")

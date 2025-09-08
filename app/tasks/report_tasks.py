@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Celery tasks for async report generation
+Celery task for async report generation (clean & minimal)
 """
 
 import logging
@@ -11,83 +11,109 @@ from sqlalchemy.orm import sessionmaker
 from app.celery_app import celery_app
 from app.services.minute_index_report_service import MinuteIndexReportService
 from app.database.crud import ReportCRUD
+from app.schemas.report import ReportStatus
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Build a local session factory for the worker
+_engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True, future=True)
+SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False)
+
 
 @celery_app.task(bind=True, name="app.tasks.report_tasks.generate_report")
-def generate_report(self, report_id: str, max_stores: int = 50000):
+def generate_report(self, report_id: str, max_stores: int = 50_000):
     """
-    Celery task to generate store monitoring report asynchronously
-    
-    Args:
-        report_id: Unique report identifier
-        max_stores: Maximum number of stores to process (use 10000 for full batch)
-    
+    Generate the store monitoring report asynchronously.
+
     Flow:
-    1. Mark report as RUNNING
-    2. Generate report using MinuteIndexReportService
-    3. Mark report as COMPLETE with file path
+      1) If report is terminal (COMPLETED/FAILED) -> exit (idempotent).
+      2) If PENDING -> set to RUNNING.
+      3) Run MinuteIndexReportService to produce file.
+      4) On success -> mark COMPLETED with internal file:// URL.
+         On failure/exception -> mark FAILED.
     """
-    
-    logger.info(f"Starting async report generation for {report_id}")
-    
+    logger.info("Starting async report generation", extra={"report_id": report_id, "max_stores": max_stores})
+
+    db = None
     try:
-        # Create database connection
-        engine = create_engine(settings.DATABASE_URL)
-        SessionLocal = sessionmaker(bind=engine)
         db = SessionLocal()
-        
-        # Step 1: Mark report as RUNNING
-        logger.info(f"Marking report {report_id} as RUNNING")
-        ReportCRUD.update_report_status(db, report_id, "RUNNING")
-        
-        # Step 2: Generate report
-        logger.info(f"Generating report {report_id} with max_stores={max_stores}")
-        service = MinuteIndexReportService(db)
-        result = service.generate_store_report(report_id, max_stores=max_stores)
-        
-        if result["success"]:
-            # Step 3: Mark report as COMPLETE with file path
-            file_path = result["file_path"]
-            logger.info(f"Report {report_id} completed successfully: {file_path}")
-            ReportCRUD.set_report_status_and_url(db, report_id, "COMPLETE", file_path)
-            
-            return {
-                "success": True,
-                "report_id": report_id,
-                "file_path": file_path,
-                "total_stores": result["total_stores"],
-                "completed_at": datetime.utcnow().isoformat()
-            }
-        else:
-            # Mark as FAILED
-            error_msg = result.get("error", "Unknown error")
-            logger.error(f"Report {report_id} failed: {error_msg}")
-            ReportCRUD.update_report_status(db, report_id, "FAILED")
-            
+
+        # Fetch current report row
+        rpt = ReportCRUD.get_report_by_id(db, report_id)
+        if not rpt:
+            logger.warning("Report not found for task; nothing to do", extra={"report_id": report_id})
             return {
                 "success": False,
                 "report_id": report_id,
-                "error": error_msg,
-                "failed_at": datetime.utcnow().isoformat()
+                "error": "report_not_found",
+                "timestamp": datetime.utcnow().isoformat(),
             }
-            
+
+        # Idempotency: skip if already terminal
+        if rpt.status in (ReportStatus.COMPLETED.value, ReportStatus.FAILED.value):
+            logger.info(
+                "Report already in terminal state; skipping generation",
+                extra={"report_id": report_id, "status": rpt.status},
+            )
+            return {
+                "success": rpt.status == ReportStatus.COMPLETED.value,
+                "report_id": report_id,
+                "file_url": rpt.url,
+                "status": rpt.status,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+
+        # Defensive: ensure RUNNING if still PENDING
+        if rpt.status == ReportStatus.PENDING.value:
+            ReportCRUD.set_report_status_and_url(db, report_id, ReportStatus.RUNNING)
+            logger.info("Report moved to RUNNING", extra={"report_id": report_id})
+
+        # ---- Actual generation step (uses your existing service) ----
+        gen = MinuteIndexReportService(db)
+        result = gen.generate_store_report(report_id, max_stores=max_stores)
+
+        if result.get("success"):
+            file_path = result["file_path"]  # e.g., "/var/app/data/reports/<id>.json"
+            # Store as internal file URL so UrlResolver can expose it later
+            internal_url = file_path if file_path.startswith("file://") else f"file://{file_path}"
+
+            ReportCRUD.set_report_status_and_url(db, report_id, ReportStatus.COMPLETED, internal_url)
+            logger.info("Report generation completed", extra={"report_id": report_id, "file_url": internal_url})
+
+            return {
+                "success": True,
+                "report_id": report_id,
+                "file_url": internal_url,
+                "total_stores": result.get("total_stores"),
+                "completed_at": datetime.utcnow().isoformat(),
+            }
+
+        # Failed result (no exception)
+        error_msg = result.get("error", "Unknown error")
+        ReportCRUD.set_report_status_and_url(db, report_id, ReportStatus.FAILED)
+        logger.error("Report generation failed", extra={"report_id": report_id, "error": error_msg})
+
+        return {
+            "success": False,
+            "report_id": report_id,
+            "error": error_msg,
+            "failed_at": datetime.utcnow().isoformat(),
+        }
+
     except Exception as e:
-        # Mark as FAILED on exception
-        logger.error(f"Exception in report generation {report_id}: {str(e)}")
+        # Best-effort mark as FAILED; don't hide the original exception
+        logger.exception("Unhandled exception in report generation", extra={"report_id": report_id})
         try:
-            ReportCRUD.update_report_status(db, report_id, "FAILED")
-        except:
-            pass
-        
-        # Re-raise to trigger Celery retry
-        raise e
-    
+            if db is not None:
+                ReportCRUD.set_report_status_and_url(db, report_id, ReportStatus.FAILED)
+        except Exception:
+            logger.exception("Failed to mark report as FAILED after exception", extra={"report_id": report_id})
+        raise
+
     finally:
-        # Clean up database connection
-        try:
-            db.close()
-        except:
-            pass
+        if db is not None:
+            try:
+                db.close()
+            except Exception:
+                pass
