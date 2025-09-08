@@ -39,12 +39,3 @@ def health_check(controller: HealthController = Depends(get_health_controller)):
     """
     return controller.check_health()
 
-
-# ============================================
-# LEGACY ENDPOINTS (Backward Compatibility)
-# ============================================
-
-@router.get("/healthz", response_model=HealthResponse, include_in_schema=False)
-def healthz_legacy(controller: HealthController = Depends(get_health_controller)):
-    """Legacy health check endpoint - use GET /health/ instead"""
-    return controller.check_health()
