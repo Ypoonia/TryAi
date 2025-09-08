@@ -1,16 +1,27 @@
 #!/usr/bin/env python3
 """
-Pydantic schemas for Report operations
+Pydantic schemas for Report operations (cleaned & unified)
 """
 
+from enum import Enum
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
 
 
+# Internal, authoritative status enum (use everywhere inside the app)
+class ReportStatus(str, Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
+# --- Input/Update DTOs (internal-ish) ---
+
 class ReportBase(BaseModel):
     """Base report schema"""
-    status: str = Field(..., description="Report status")
+    status: ReportStatus = Field(..., description="Report status")
     url: Optional[str] = Field(None, description="Report URL")
 
 
@@ -21,59 +32,43 @@ class ReportCreate(BaseModel):
 
 class ReportUpdate(BaseModel):
     """Schema for updating a report"""
-    status: Optional[str] = Field(None, description="New report status")
+    status: Optional[ReportStatus] = Field(None, description="New report status")
     url: Optional[str] = Field(None, description="Report URL")
 
 
+# --- Output DTOs (HTTP responses) ---
+
 class ReportResponse(BaseModel):
-    """Schema for report response"""
+    """
+    Trigger response. Contract requires status 'RUNNING' (string) alongside report_id.
+    """
     report_id: str = Field(..., description="Unique report identifier")
-    status: str = Field(..., description="Report status (RUNNING)")
+    status: Literal["RUNNING"] = Field(..., description="Report status (RUNNING)")
 
     class Config:
         from_attributes = True
 
 
 class ReportStatusResponse(BaseModel):
-    """Schema for report status response"""
-    status: str = Field(..., description="Current report status")
+    """
+    Status response for GET /get_report.
+    Status values are 'Running' | 'Complete' | 'Failed' (per assignment spec).
+    """
+    status: Literal["Running", "Complete", "Failed"] = Field(..., description="Current report status")
     report_id: str = Field(..., description="Report identifier")
-    url: Optional[str] = Field(None, description="Report URL (only when COMPLETE)")
+    url: Optional[str] = Field(None, description="Report URL (only when Complete)")
 
     class Config:
         from_attributes = True
 
 
+# (Kept for completeness where you may need fuller objects elsewhere)
 class ReportDetailResponse(BaseModel):
-    """Schema for detailed report response"""
     report_id: str = Field(..., description="Unique report identifier")
-    status: str = Field(..., description="Current report status")
+    status: ReportStatus = Field(..., description="Current report status")
     url: Optional[str] = Field(None, description="Report URL")
     created_at: datetime = Field(..., description="Report creation timestamp")
     updated_at: datetime = Field(..., description="Report last update timestamp")
-
-    class Config:
-        from_attributes = True
-
-
-class PendingStatusResponse(BaseModel):
-    """Schema for pending status check response"""
-    has_pending: bool = Field(..., description="Whether a PENDING report exists")
-    report_id: Optional[str] = Field(None, description="Existing PENDING report ID")
-    status: Optional[str] = Field(None, description="Existing report status")
-    created_at: Optional[datetime] = Field(None, description="Existing report creation time")
-    message: str = Field(..., description="Status message")
-
-    class Config:
-        from_attributes = True
-
-
-class CurrentReportResponse(BaseModel):
-    """Schema for current report response"""
-    current_report_id: Optional[str] = Field(None, description="Current active report ID")
-    status: Optional[str] = Field(None, description="Current report status")
-    created_at: Optional[datetime] = Field(None, description="Current report creation time")
-    last_updated: Optional[datetime] = Field(None, description="Last update timestamp")
 
     class Config:
         from_attributes = True

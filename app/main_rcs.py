@@ -83,21 +83,16 @@ def root():
             "models": "Database schema and ORM definitions"
         },
         "endpoints": {
-            "POST /reports/trigger": "Trigger new report (RCS pattern)",
-            "GET /reports/status?report_id=<id>": "Get report status (RCS pattern)",
-            "GET /reports/details?report_id=<id>": "Get detailed report info (NEW)",
-            "PUT /reports/status?report_id=<id>&new_status=<status>": "Update report status (NEW)",
-            "GET /reports/current": "Get current active report",
-            "GET /reports/pending": "Check for pending reports",
+            "POST /reports/trigger_report": "Trigger new report generation",
+            "GET /reports/get_report?report_id=<id>": "Get report status and URL",
             "GET /health/": "System health check"
         },
-        "legacy_endpoints": {
-            "POST /reports/trigger_report": "Legacy - use /reports/trigger",
-            "GET /reports/get_report": "Legacy - use /reports/status",
-            "GET /reports/current_report": "Legacy - use /reports/current",
-            "GET /reports/pending_status": "Legacy - use /reports/pending",
-            "GET /health/healthz": "Legacy - use /health/"
-        },
+        "api_notes": [
+            "Uses 202 Accepted status for async report generation",
+            "Includes Retry-After headers for polling guidance",
+            "Returns status: Running/Complete/Failed",
+            "URLs provided only when status is Complete"
+        ],
         "architecture_benefits": [
             "Clean separation of concerns",
             "Easy to test individual layers",
