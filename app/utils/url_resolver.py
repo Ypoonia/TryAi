@@ -8,15 +8,33 @@ from typing import Optional
 
 
 class UrlResolver:
-    def to_public(self, internal: Optional[str]) -> Optional[str]:
-        if not internal:
-            return None
-        # Current rule: file://.../reports/<name>.json -> /files/reports/<name>.csv
-        if internal.startswith("file://"):
-            path = internal.replace("file://", "")
-            if "reports/" in path:
-                filename = path.split("reports/")[-1]
-                if filename.endswith(".json"):
-                    filename = filename[:-5] + ".csv"
-                return f"/files/reports/{filename}"
-        return internal
+    """Utility for converting internal file URLs to public API URLs"""
+
+    @staticmethod
+    def to_public(internal_url: str) -> str:
+        """
+        Convert internal file:// URLs to public /files/reports/ URLs.
+        Other URLs pass through unchanged.
+        
+        Args:
+            internal_url: Internal URL (typically file://)
+            
+        Returns:
+            Public URL suitable for API responses
+        """
+        if not internal_url:
+            return internal_url
+            
+        if internal_url.startswith("file://"):
+            # Extract filename from file path
+            file_path = internal_url.replace("file://", "")
+            filename = file_path.split("/")[-1]  # Get last part of path
+            
+            # Convert to CSV if it's JSON
+            if filename.endswith(".json"):
+                filename = filename.replace(".json", ".csv")
+                
+            return f"/files/reports/{filename}"
+        
+        # Return unchanged for non-file URLs
+        return internal_url
