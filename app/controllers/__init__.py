@@ -5,9 +5,7 @@ Request/Response Handling Layer
 """
 
 from app.controllers.report_controller import ReportController
-from app.controllers.health_controller import HealthController
 
 __all__ = [
-    "ReportController",
-    "HealthController"
+    "ReportController"
 ]

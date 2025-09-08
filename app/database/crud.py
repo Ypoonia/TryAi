@@ -97,20 +97,3 @@ class ReportCRUD:
             logger.error(f"Invalid status: {new_status}")
             raise RepositoryError(f"Invalid status: {new_status}")
 
-
-def check_database_health(db: Session) -> dict:
-    """Simple database connectivity check"""
-    try:
-        # Simple query to test database connectivity
-        result = db.execute(text("SELECT 1")).scalar()
-        return {
-            "ok": result == 1,
-            "database": "connected"
-        }
-    except SQLAlchemyError as e:
-        logger.error(f"Database health check failed: {e}")
-        return {
-            "ok": False,
-            "database": f"error: {str(e)}"
-        }
-
