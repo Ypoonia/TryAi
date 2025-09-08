@@ -9,3 +9,4 @@ Store Monitoring System...
 
 DECK : https://excalidraw.com/#json=ZgW_Lyv10x5QPHxdFJbuj,LxXyp8yBEL7WCXRmf34I9A
 DOC : https://docs.google.com/document/d/1kU88paass0dvh35jbBSOTr9iiQuyLbYIe2VeNq35kg4/edit?usp=sharing
+YT : https://youtu.be/p3y1PO16Qjs?si=kOp_VEzpN-nbsmyF
