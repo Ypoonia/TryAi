@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import json
 import csv
 import os
@@ -16,9 +15,6 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 class MinuteIndexReportService:
-    """
-    Store Report Service using Local-Minute Index + Interval Sweep Algorithm
-    """
     
     def __init__(self, db: Session):
         self.db = db
@@ -26,17 +22,12 @@ class MinuteIndexReportService:
         self.reports_dir.mkdir(exist_ok=True)
     
     def generate_store_report(self, report_id: str, max_stores: int = 100) -> Dict[str, Any]:
-        """
-        Generate store monitoring report using minute index algorithm
-        """
         try:
             logger.info(f"Starting minute-index report generation for {report_id}")
             
-            # Step 0: Fetch/anchor - get MAX_UTC and define bands
             max_utc = self._get_max_timestamp_utc()
             logger.info(f"MAX_UTC: {max_utc}")
             
-            # Get stores to process
             stores_data = self._get_stores_for_processing(max_stores)
             logger.info(f"Processing {len(stores_data)} stores")
             
@@ -58,13 +49,10 @@ class MinuteIndexReportService:
                     logger.error(f"Error processing store {store_id}: {e}")
                     continue
             
-            # Save JSON (metadata-rich, debugging)
             self._save_report_json(report_id, report_data, max_utc)
             
-            # Save CSV (flat report for owners)
             report_file_path = self._save_report_csv(report_id, report_data, max_utc)
             
-            # Generate summary
             summary = self._generate_report_summary(report_data)
             
             logger.info(f"Minute-index report completed for {report_id}: {len(report_data)} stores")
@@ -73,7 +61,7 @@ class MinuteIndexReportService:
                 "success": True,
                 "report_id": report_id,
                 "total_stores": len(report_data),
-                "file_path": str(report_file_path),  # CSV path
+                "file_path": str(report_file_path),
                 "summary": summary,
                 "generated_at": datetime.utcnow().isoformat(),
                 "max_utc": max_utc.isoformat(),
@@ -89,7 +77,6 @@ class MinuteIndexReportService:
             }
     
     def _get_max_timestamp_utc(self) -> datetime:
-        """Get MAX(timestamp_utc) from raw.store_status"""
         
         query = text("SELECT MAX(timestamp_utc) FROM raw.store_status")
         result = self.db.execute(query).fetchone()
@@ -99,20 +86,17 @@ class MinuteIndexReportService:
             raise ValueError("raw.store_status is empty; no MAX(timestamp_utc)")
             
         if isinstance(max_timestamp_str, str):
-            # Handle CSV format with ' UTC' suffix
             max_timestamp_str = max_timestamp_str.replace(' UTC', '')
             max_utc = datetime.fromisoformat(max_timestamp_str)
         else:
             max_utc = result[0]
         
-        # Ensure timezone-aware UTC datetime (single source of truth)
         if max_utc.tzinfo is None:
             max_utc = pytz.UTC.localize(max_utc)
         
         return max_utc
     
     def _get_stores_for_processing(self, max_stores: int) -> List[Dict[str, Any]]:
-        """Get stores with their timezone info"""
         
         query = text("""
             SELECT DISTINCT 
@@ -134,13 +118,7 @@ class MinuteIndexReportService:
         ]
     
     def _process_store_with_minute_index(self, store_id: str, tz_str: str, max_utc: datetime) -> Optional[Dict[str, Any]]:
-        """
-        Process a single store using the minute index algorithm
-        """
         
-        # Step 0: Setup timezone and NOW_s in local timezone
-        # Default to America/Chicago for US-based stores when timezone is missing
-        # TODO: Consider geographic distribution analysis for better defaults
         try:
             store_tz = pytz.timezone(tz_str or "America/Chicago")
         except Exception:
@@ -228,10 +206,6 @@ class MinuteIndexReportService:
         Both dt_local and now_s_local MUST be tz-aware in the SAME timezone"""
         delta_minutes = (now_s_local - dt_local).total_seconds() / 60.0
         return max(1, int(delta_minutes) + 1)
-    
-    def _index_to_datetime(self, k: int, now_s_local: datetime) -> datetime:
-        """Inverse: dt(k) = now_s_local - k minutes"""
-        return now_s_local - timedelta(minutes=k)
     
     def _overlap_len(self, interval1: Tuple[int, int], interval2: Tuple[int, int]) -> int:
         """Calculate overlap length between two half-open intervals [a,b) and [x,y)"""
@@ -437,17 +411,6 @@ class MinuteIndexReportService:
         logger.debug(f"Store {store_id}: Built {len(bh_intervals)} BH intervals")
         return bh_intervals
     
-    def _parse_time_components(self, time_str: str) -> tuple:
-        """Parse time string and return (hour, minute, second)"""
-        try:
-            parts = time_str.split(':')
-            hour = int(parts[0])
-            minute = int(parts[1])
-            second = int(parts[2]) if len(parts) > 2 else 0
-            return hour, minute, second
-        except:
-            return 0, 0, 0  # Default to start of day
-    
     def _parse_time_str(self, time_str: str) -> datetime.time:
         """Parse time string like '09:00:00'"""
         try:
@@ -468,27 +431,6 @@ class MinuteIndexReportService:
             except:
                 from datetime import time
                 return time(0, 0, 0)  # Default to start of day
-    
-    def _merge_time_windows(self, windows: List[Tuple[datetime.time, datetime.time]]) -> List[Tuple[datetime.time, datetime.time]]:
-        """Merge overlapping/adjacent time windows"""
-        if not windows:
-            return []
-        
-        # Sort by start time
-        windows.sort(key=lambda x: x[0])
-        
-        merged = [windows[0]]
-        for start, end in windows[1:]:
-            last_start, last_end = merged[-1]
-            
-            # Check if overlapping or adjacent
-            if start <= last_end:
-                # Merge
-                merged[-1] = (last_start, max(last_end, end))
-            else:
-                merged.append((start, end))
-        
-        return merged
     
     def _merge_sorted_intervals(self, intervals: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
         """Merge overlapping/adjacent sorted intervals"""
@@ -561,22 +503,6 @@ class MinuteIndexReportService:
                 out.append((st, en, stt))
         return out
 
-    def _merge_sorted_intervals(self, intervals: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
-        """Merge overlapping sorted intervals"""
-        if not intervals:
-            return []
-        
-        merged = [intervals[0]]
-        for start, end in intervals[1:]:
-            last_start, last_end = merged[-1]
-            if start <= last_end:
-                merged[-1] = (last_start, max(last_end, end))
-            else:
-                merged.append((start, end))
-        return merged
-
-    # Step 4: Two-Pointer Sweep
-    
     def _two_pointer_sweep(self, bh_intervals: List[Tuple[int, int]], 
                           status_spans: List[Tuple[int, int, str]],
                           H: Tuple[int, int], D: Tuple[int, int], W: Tuple[int, int]) -> Tuple[float, float, float]:

@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-Main FastAPI Application - Routes-Controller-Service Architecture
-Demonstrates proper layered architecture with clean separation of concerns
-"""
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
@@ -12,14 +6,12 @@ from app.core.config import settings
 from app.models import create_tables
 from app.routes import reports_rcs
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
-# Create FastAPI application
 app = FastAPI(
     title=f"{settings.APP_TITLE} - RCS Architecture",
     description="FastAPI with Routes-Controller-Service architecture pattern",
@@ -27,25 +19,21 @@ app = FastAPI(
     debug=settings.DEBUG
 )
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include routers with RCS architecture
 app.include_router(reports_rcs.router)
 
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize application on startup"""
     logger.info("Starting Store Monitoring System API with RCS Architecture...")
     
-    # Create database tables
     try:
         create_tables()
         logger.info("Database tables created/verified successfully")
@@ -58,15 +46,11 @@ async def startup_event():
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Cleanup on application shutdown"""
     logger.info("Shutting down Store Monitoring System API...")
 
 
 @app.get("/", tags=["root"])
 def root():
-    """
-    Root endpoint with RCS architecture information
-    """
     return {
         "message": f"{settings.APP_TITLE} - Routes-Controller-Service Architecture",
         "version": "4.0.0",
