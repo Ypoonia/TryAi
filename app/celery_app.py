@@ -30,5 +30,5 @@ celery_app.conf.update(
 
 # Task routing
 celery_app.conf.task_routes = {
-    "app.tasks.report_tasks.generate_report": {"queue": "reports"},
+    "app.tasks.report_tasks.generate_report": {"queue": "celery"},
 }
