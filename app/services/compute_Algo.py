@@ -15,7 +15,7 @@ class MinuteIndexReportService:
         self.db = db
         self.reports_dir = Path("reports")
         self.reports_dir.mkdir(exist_ok=True)
-
+#Generate csv
     def generate_store_report(self, report_id: str, max_stores: int = 100) -> Dict[str, Any]:
         try:
             logger.info(f"Starting minute-index report generation for {report_id}")
